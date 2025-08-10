@@ -1,6 +1,7 @@
 import json
 
 from scripts.locate_im import *
+from ocr import ocr_colored_digits
 from datetime import datetime
 import subprocess
 import os.path
@@ -135,8 +136,61 @@ def current_at_position(position, minimap_region=None, tolerance_x=2, tolerance_
     return is_overlap(get_current_position_of("player", minimap_region), position, tolerance_x, tolerance_y)
 
 
-def check_cd(skill):
-    pass
+def detect_skill_region(skill_name, save=False, unreliable_memory_copy=False):
+    if os.path.exists(os.path.join(DIR, f"resources/{skill_name}.png")):
+        regions = locate_all_on_screen(os.path.join(DIR, f"resources/{skill_name}.png"), region=(1400, 1300, 1160, 280), confidence=0.9)
+        if not regions:
+            return None
+        if unreliable_memory_copy and len(regions) == 2:
+            skill_name = f"{skill_name}2"
+            region = tuple(regions[1])
+        else:
+            region = tuple(regions[0])
+        if save:
+            if os.path.exists(os.path.join(DIR, "resources/skill_icon_region.json")):
+                with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'r') as f:
+                    data = json.load(f)
+            else:
+                data = {}
+            data.update({skill_name: region})
+            with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'w') as f:
+                json.dump(data, f)
+        return region
+
+
+def get_skill_region(skill_name):
+    with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'r') as f:
+        data = json.load(f)
+    return data.get(skill_name)
+
+
+def check_frac_cd_to_up(skill_name, skill_im):
+    brightness = float(cv2.cvtColor(skill_im, cv2.COLOR_BGR2GRAY).mean())
+    skill_off_cd_im = cv2.imread(os.path.join(DIR, f"resources/{skill_name}.png"))
+    max_brightness = float(cv2.cvtColor(skill_off_cd_im, cv2.COLOR_BGR2GRAY).mean())
+    skill_on_cd_im = cv2.imread(os.path.join(DIR, f"resources/{skill_name}_on_cd.png"))
+    min_brightness = float(cv2.cvtColor(skill_on_cd_im, cv2.COLOR_BGR2GRAY).mean())
+    return (max_brightness - brightness) / (max_brightness - min_brightness) * 0.95
+
+
+def check_time_to_up(skill_name, skill_region, skill_cd):
+    """
+    :param skill_name: e.g.: 'infinity'
+    :param skill_region: (x, y, w, h)
+    :param skill_cd: int
+    :return: 0 if up; 1 if ≤5 seconds; 6-60 accurate; 60+ estimate.
+    """
+    skill_im = screenshot(region=skill_region)
+    est_frac_cd = check_frac_cd_to_up(skill_name, skill_im)
+    print(f"{est_frac_cd:.4f}", end=',  ')
+    if est_frac_cd > 0.2:
+        result = ocr_colored_digits(skill_im[14:45, 14:45])
+        if result and result.isdigit():
+            return int(result) + 1
+        return int(est_frac_cd * skill_cd)
+    elif est_frac_cd < 0.02:
+        return 0
+    return 1
 
 
 def get_window_pos():
@@ -180,15 +234,29 @@ if __name__ == '__main__':
     # x1 = x0 + w
     # y1 = y0 + h
     # screenshot("test002.png")
-    res = locate_all_on_screen(os.path.join(DIR, "resources/infinity.png"), confidence=0.9)
-    regions = []
-    for r in res:
-        regions.append([])
-        for n in r:
-             regions[-1].append(int(n))
-    print(regions)
-    d = {"infinity": regions[0],
-         "infinity2": regions[1]}
-    with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'w') as f:
-        json.dump(d, f)
-
+    # res = locate_all_on_screen(os.path.join(DIR, "resources/infinity.png"), region=(1400, 1400, 1160, 180), confidence=0.9)
+    # regions = []
+    # for r in res:
+    #     regions.append([])
+    #     for n in r:
+    #          regions[-1].append(int(n))
+    # print(regions)
+    # d = {"infinity": regions[0],
+    #      "infinity2": regions[1]}
+    # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'w') as f:
+    #     json.dump(d, f)
+    # import subprocess
+    # subprocess.run(["osascript", "-e",
+    #                 'tell application "Parallels Desktop" to activate'])
+    # time.sleep(2)
+    # screenshot("cd03.png")
+    skill_name = "infinity"
+    skill_region = get_skill_region("infinity2")
+    time.sleep(2)
+    t0 = time.perf_counter()
+    for t in range(1, 185):
+        # skill_im = screenshot(f"cd_inf_{t}.png", region=skill_region)
+        skill_im = screenshot(region=skill_region)
+        print(181 - int(time.perf_counter() - t0), end=': ')
+        print(check_time_to_up(skill_name, skill_region, 180))
+        time.sleep(t - time.perf_counter() + t0)

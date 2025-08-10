@@ -1,2 +1,4 @@
 .idea/*
+training
 *.DS_Store
+*.pyc

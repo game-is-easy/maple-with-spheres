@@ -28,6 +28,8 @@ def screenshot(image_name=None, region=None):
 
     if image_name is None:
         os.unlink(tmp_filename)
+    elif region is not None:
+        cv2.imwrite(image_name, im)
     return im
 
 
@@ -129,7 +131,7 @@ def locate_all_on_screen(im_name, region=None, confidence=0.999, target_color=No
     if region is None:
         region = (0, 0, 0, 0)
     for result in relative_results:
-        absolute_results.append(Box(result[0] + region[0], result[1] + region[1], result[2], result[3]))
+        absolute_results.append(Box(int(result[0]) + region[0], int(result[1]) + region[1], result[2], result[3]))
     return absolute_results
 
 

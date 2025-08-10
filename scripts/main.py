@@ -1,3 +1,5 @@
+import time
+
 from gameUI import *
 from comboKeys import *
 
@@ -21,6 +23,13 @@ KEY_ATT = KEY_X
 KEY_ATT2 = KEY_Z
 KEY_ATT3 = KEY_SPACE
 KEY_INTERACT = KEY_B
+KEY_GUILD_BOSS = key_codes['8']
+KEY_GUILD_DMG = key_codes['9']
+KEY_GUILD_CRITDMG = key_codes['0']
+
+INFINITY_REGION = get_skill_region("infinity")
+INFINITY2_REGION = get_skill_region("infinity2")
+GUILD_CRITDMG_REGION = get_skill_region("guild_critdmg")
 
 
 def move_horizontal_by(arrow_key_code, distance):
@@ -277,11 +286,13 @@ def unlock_rune():
     return rune_unlocked
 
 
-def periodically_attack(duration, max_gap=10):
+def periodically_attack(duration, recast_after=0, max_gap=10):
     t0 = time.perf_counter()
     t1 = time.perf_counter()
     random_action(attack1, attack3)()
     while time.perf_counter() - t0 < duration:
+        if 0 < recast_after < time.perf_counter() - t0:
+            recast_after = buff_infinity()
         if np.random.random() < (time.perf_counter() - t1) / max_gap:
             t1 = time.perf_counter()
             random_action(attack1, attack2, attack3)()
@@ -298,6 +309,41 @@ def periodically_attack(duration, max_gap=10):
             short_delay(10)
     short_delay(5)
     return time.perf_counter() - t0
+
+
+def buff_infinity():
+    inf_cd = check_time_to_up("infinity", INFINITY_REGION, 180)
+    inf2_cd = check_time_to_up("infinity", INFINITY2_REGION, 340)
+    print(inf_cd, inf2_cd)
+    # recast_after = 0
+    if inf_cd == 0 and inf2_cd == 0:
+        short_press(KEY_BUFF2)
+    else:
+        short_press(KEY_BUFF)
+        # if inf_cd > 0 and inf2_cd > 0:
+        #     recast_after = np.min([10, inf_cd, inf2_cd])
+    short_delay(3)
+    # return recast_after
+    return np.max([np.min([10, inf_cd, inf2_cd]), 0])
+
+
+def buff_guild():
+    buffed = False
+    keyDown(KEY_LEFT_ALT)
+    short_delay()
+    guild_cd = check_time_to_up("guild_critdmg", GUILD_CRITDMG_REGION, 300)
+    if guild_cd == 0:
+        short_press(KEY_GUILD_BOSS)
+        short_delay()
+        short_press(KEY_GUILD_DMG)
+        short_delay()
+        short_press(KEY_GUILD_CRITDMG)
+        short_delay()
+        buffed = True
+    keyUp(KEY_LEFT_ALT)
+    short_delay(3)
+    short_press(key_codes['f6'])
+    return buffed
 
 
 def attack1():
@@ -318,20 +364,38 @@ def attack3():
 def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18, alt_buff=KEY_BUFF2):
     t0 = time.perf_counter()
     t1 = time.perf_counter()
-    setup_fn()
-    buff_time = time.perf_counter()
-    short_press(alt_buff)
-    short_delay(3)
+    recast_ref = time.perf_counter()
+    guild_buff_ref = time.perf_counter()
+    buff_guild()
+    # setup_fn()
+    # short_press(alt_buff)
+    # short_delay(3)
     while time.perf_counter() - t0 < 60 * minutes:
+        log("setting up...")
+        t1 = time.perf_counter()
+        setup_fn()
         log("setup down...")
+        short_delay()
+        log("buffing...")
+        recast_after = buff_infinity()
+        if recast_after > 0:
+            log(f"recasting infinity after {recast_after} seconds...")
+            recast_ref = time.perf_counter()
         time_left = 60 * minutes - time.perf_counter() + t0
         log(f"{time_left:.2f} seconds left.")
         if time_left < 60:
             subprocess.run(['say', 'less than one minutes left!'])
         if unlock_rune():
             t0 = time.perf_counter()
+        if 0 < recast_after < time.perf_counter() - recast_ref:
+            recast_after = buff_infinity()
         back_fn()
-        periodically_attack(58 + random_norm(1.5, 0.5, 0.2, 2.8) - time.perf_counter() + t1)
+        if 0 < recast_after < time.perf_counter() - recast_ref:
+            recast_after = buff_infinity()
+        if np.random.random() < (time.perf_counter() - guild_buff_ref) / 1500:
+            buff_guild()
+            guild_buff_ref = time.perf_counter()
+        periodically_attack(58 + random_norm(1.5, 0.5, 0.2, 2.8) - time.perf_counter() + t1, recast_after)
         t1 = time.perf_counter()
         minor_setup_fn()
         short_delay(3)
@@ -342,17 +406,18 @@ def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18, alt_buff=KEY_BU
         short_delay(5)
         log("loot done. staying until setup...")
         periodically_attack(58 + random_norm(1.5, 0.5, 0.2, 2.8) - time.perf_counter() + t1)
-        log("setting up...")
-        t1 = time.perf_counter()
-        setup_fn()
-        short_delay()
-        log("buffing...")
-        buff_time = time.perf_counter()
-        short_press(KEY_BUFF)
-        short_delay(3)
+        # log("setting up...")
+        # t1 = time.perf_counter()
+        # setup_fn()
+        # short_delay()
+        # log("buffing...")
+        # short_press(KEY_BUFF)
+        # short_delay(3)
 
 
 if __name__ == '__main__':
+    if not os.path.exists(os.path.join(DIR, "training")):
+        os.mkdir(os.path.join(DIR, "training"))
     import subprocess
     subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
     time.sleep(0.3)
