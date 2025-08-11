@@ -182,7 +182,7 @@ def check_time_to_up(skill_name, skill_region, skill_cd):
     """
     skill_im = screenshot(region=skill_region)
     est_frac_cd = check_frac_cd_to_up(skill_name, skill_im)
-    print(f"{est_frac_cd:.4f}", end=',  ')
+    # print(f"{est_frac_cd:.4f}", end=',  ')
     if est_frac_cd > 0.2:
         result = ocr_colored_digits(skill_im[14:45, 14:45])
         if result and result.isdigit():

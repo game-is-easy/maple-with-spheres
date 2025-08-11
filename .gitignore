@@ -1,4 +1,6 @@
 .idea/*
 training
+scripts/*.png
+scripts/out
 *.DS_Store
 *.pyc

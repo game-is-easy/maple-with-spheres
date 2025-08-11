@@ -314,7 +314,7 @@ def periodically_attack(duration, recast_after=0, max_gap=10):
 def buff_infinity():
     inf_cd = check_time_to_up("infinity", INFINITY_REGION, 180)
     inf2_cd = check_time_to_up("infinity", INFINITY2_REGION, 340)
-    print(inf_cd, inf2_cd)
+    # print(inf_cd, inf2_cd)
     # recast_after = 0
     if inf_cd == 0 and inf2_cd == 0:
         short_press(KEY_BUFF2)
@@ -338,7 +338,7 @@ def buff_guild():
         short_press(KEY_GUILD_DMG)
         short_delay()
         short_press(KEY_GUILD_CRITDMG)
-        short_delay()
+        short_delay(3)
         buffed = True
     keyUp(KEY_LEFT_ALT)
     short_delay(3)
@@ -361,15 +361,12 @@ def attack3():
     short_delay(7)
 
 
-def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18, alt_buff=KEY_BUFF2):
+def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18):
     t0 = time.perf_counter()
     t1 = time.perf_counter()
     recast_ref = time.perf_counter()
     guild_buff_ref = time.perf_counter()
     buff_guild()
-    # setup_fn()
-    # short_press(alt_buff)
-    # short_delay(3)
     while time.perf_counter() - t0 < 60 * minutes:
         log("setting up...")
         t1 = time.perf_counter()
@@ -406,13 +403,6 @@ def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18, alt_buff=KEY_BU
         short_delay(5)
         log("loot done. staying until setup...")
         periodically_attack(58 + random_norm(1.5, 0.5, 0.2, 2.8) - time.perf_counter() + t1)
-        # log("setting up...")
-        # t1 = time.perf_counter()
-        # setup_fn()
-        # short_delay()
-        # log("buffing...")
-        # short_press(KEY_BUFF)
-        # short_delay(3)
 
 
 if __name__ == '__main__':
@@ -426,6 +416,6 @@ if __name__ == '__main__':
     setup = setup_placement_spring1
     loot = loot_spring1
     back = back_to_start_position_spring1
-    loop(minor_setup, setup, loot, back, alt_buff=KEY_BUFF2)
+    loop(minor_setup, setup, loot, back)
     # loop(minor_setup_spring4, setup_placement_spring4, loot_spring4, back_to_start_position_spring4, alt_buff=KEY_BUFF2)
     #
