@@ -132,3 +132,8 @@ KEY_F2 = 0x78
 KEY_F3 = 0x63
 KEY_F4 = 0x76
 
+WSAD_TO_ARROW = {'w': KEY_UP_ARROW,
+                 's': KEY_DOWN_ARROW,
+                 'a': KEY_LEFT_ARROW,
+                 'd': KEY_RIGHT_ARROW}
+

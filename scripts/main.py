@@ -2,6 +2,7 @@ import time
 
 from gameUI import *
 from comboKeys import *
+from discord_bot import start_bot, send_dm_and_wait_for_response
 
 
 minimap_region = extract_minimap_region()
@@ -31,9 +32,11 @@ INFINITY_REGION = get_skill_region("infinity")
 INFINITY2_REGION = get_skill_region("infinity2")
 GUILD_CRITDMG_REGION = get_skill_region("guild_critdmg")
 
+DC_USER_ID = 304671527784284160
+
 
 def move_horizontal_by(arrow_key_code, distance):
-    blinks = distance // (BLINK_HORIZONTAL_DISTANCE + DISTANCE_BETWEEN_BLINKS)
+    blinks = (distance + DISTANCE_BETWEEN_BLINKS) // (BLINK_HORIZONTAL_DISTANCE + DISTANCE_BETWEEN_BLINKS)
     if blinks == 0:
         if distance <= 2:
             std = distance / SPEED * 0.2
@@ -99,11 +102,11 @@ def back_to_start_position_spring1():
                 random_action(down_blink, down_jump)()
                 short_delay(10)
             down_jump()
-            short_delay(15)
+            short_delay(10)
         down_jump()
         short_delay()
         short_press(KEY_RIGHT_ARROW)
-        short_delay(10)
+        short_delay(9)
     go_to(STARTING_POSITION_SPRING1, need_jump_down=True, need_jump_combo=True)
 
 
@@ -135,7 +138,9 @@ def loot_spring1():
     short_delay(10)
     blink_with_key(KEY_ATT, KEY_RIGHT_ARROW)
     short_delay(20)
-    move_horizontal_by(KEY_RIGHT_ARROW, random_unif(40, 25))
+    action_with_prob(blink_with_key, 0.6)(KEY_ATT, KEY_RIGHT_ARROW)
+    go_to(Position(240, 86), tolerance_x=30, tolerance_y=30)
+    # move_horizontal_by(KEY_RIGHT_ARROW, random_unif(40, 25))
     short_delay()
     short_press(KEY_ATT)
     short_delay(20)
@@ -246,7 +251,9 @@ def loot_spring4():
     return time.perf_counter() - t0
 
 
-def unlock_rune():
+def unlock_rune(attempts=2):
+    if attempts == 0:
+        return False
     rune_unlocked = False
     rune_position = get_current_position_of("rune", minimap_region)
     if rune_position:
@@ -269,21 +276,35 @@ def unlock_rune():
         t0 = time.perf_counter()
         keyPress(KEY_INTERACT, press_duration)
         time.sleep(0.1 - press_duration)
-        while time.perf_counter() - t0 < 0.35:
-            # print(time.perf_counter() - t0)
+        while time.perf_counter() - t0 < 0.4:
             screencapture(os.path.join(DIR, f"training/{file_name}_{n_image}.png"), region=(800, 500, 960, 300))
-            # print(time.perf_counter() x- t0)
             n_image += 1
-        # screenshot(os.path.join(DIR, f"training/{file_name}_base.png"), region=(800, 500, 960, 300))
-        # time.sleep(0.03)
-        # screenshot(os.path.join(DIR, f"training/{file_name}_rune.png"), region=(800, 500, 960, 300))
-        if wait_key('z', 'x'):
-            rune_unlocked = True
-        else:
-            random_action(attack1, attack2, attack3)()
-            subprocess.run(['say', 'Rune is still there!'])
-        short_delay(5)
-    return rune_unlocked
+        time.sleep(0.1)
+        image_path = os.path.join(DIR, f"training/{file_name}_{n_image}.png")
+        screencapture(image_path, region=(800, 500, 960, 300))
+        # if wait_key('z', 'x'):
+        #     rune_unlocked = True
+        result = send_dm_and_wait_for_response(user_id=DC_USER_ID, image_path=image_path, wait_keys='zx', timeout=10.0)
+        if result['success']:
+            if result['trigger'] == 'key':
+                return True
+            elif result['discord_reply'].strip().lower() == 'b':
+                return unlock_rune(attempts)
+            elif len(result['discord_reply'].strip()) == 4:
+                print(result['discord_reply'].strip())
+                for direction_char in result['discord_reply'].strip().lower():
+                    arrow_key = WSAD_TO_ARROW.get(direction_char)
+                    if arrow_key:
+                        random_delay_rep = 1 if np.random.random() < 0.7 else 3
+                        short_press(arrow_key)
+                        short_delay(random_delay_rep)
+                    else:
+                        return unlock_rune(attempts - 1)
+                    random_action(attack1, attack2)()
+                return True
+        random_action(attack1, attack2, attack3)()
+        subprocess.run(['say', 'Rune is still there!'])
+    return False
 
 
 def periodically_attack(duration, recast_after=0, max_gap=10):
@@ -293,7 +314,7 @@ def periodically_attack(duration, recast_after=0, max_gap=10):
     while time.perf_counter() - t0 < duration:
         if 0 < recast_after < time.perf_counter() - t0:
             recast_after = buff_infinity()
-        if np.random.random() < (time.perf_counter() - t1) / max_gap:
+        if np.random.random() < ((time.perf_counter() - t1) / max_gap) ** 2:
             t1 = time.perf_counter()
             random_action(attack1, attack2, attack3)()
             def special_attack():
@@ -314,16 +335,11 @@ def periodically_attack(duration, recast_after=0, max_gap=10):
 def buff_infinity():
     inf_cd = check_time_to_up("infinity", INFINITY_REGION, 180)
     inf2_cd = check_time_to_up("infinity", INFINITY2_REGION, 340)
-    # print(inf_cd, inf2_cd)
-    # recast_after = 0
     if inf_cd == 0 and inf2_cd == 0:
         short_press(KEY_BUFF2)
     else:
         short_press(KEY_BUFF)
-        # if inf_cd > 0 and inf2_cd > 0:
-        #     recast_after = np.min([10, inf_cd, inf2_cd])
     short_delay(3)
-    # return recast_after
     return np.max([np.min([10, inf_cd, inf2_cd]), 0])
 
 
@@ -331,13 +347,13 @@ def buff_guild():
     buffed = False
     keyDown(KEY_LEFT_ALT)
     short_delay()
-    guild_cd = check_time_to_up("guild_critdmg", GUILD_CRITDMG_REGION, 300)
+    guild_cd = check_time_to_up("guild_boss", GUILD_CRITDMG_REGION, 300)
     if guild_cd == 0:
-        short_press(KEY_GUILD_BOSS)
+        short_press(KEY_GUILD_CRITDMG)
         short_delay()
         short_press(KEY_GUILD_DMG)
         short_delay()
-        short_press(KEY_GUILD_CRITDMG)
+        short_press(KEY_GUILD_BOSS)
         short_delay(3)
         buffed = True
     keyUp(KEY_LEFT_ALT)
@@ -389,7 +405,7 @@ def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18):
         back_fn()
         if 0 < recast_after < time.perf_counter() - recast_ref:
             recast_after = buff_infinity()
-        if np.random.random() < (time.perf_counter() - guild_buff_ref) / 1500:
+        if np.random.random() < ((time.perf_counter() - guild_buff_ref) / 1500) ** 2:
             buff_guild()
             guild_buff_ref = time.perf_counter()
         periodically_attack(58 + random_norm(1.5, 0.5, 0.2, 2.8) - time.perf_counter() + t1, recast_after)
@@ -406,6 +422,7 @@ def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, minutes=18):
 
 
 if __name__ == '__main__':
+    start_bot()
     if not os.path.exists(os.path.join(DIR, "training")):
         os.mkdir(os.path.join(DIR, "training"))
     import subprocess

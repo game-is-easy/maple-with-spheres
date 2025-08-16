@@ -4,3 +4,4 @@ scripts/*.png
 scripts/out
 *.DS_Store
 *.pyc
+token.txt

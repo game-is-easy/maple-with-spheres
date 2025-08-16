@@ -29,6 +29,16 @@ def wait_key(*keys, max_timeout=10):
     return True
 
 
+def enter_rune_arrows(wsad):
+    for char in wsad.strip().lower():
+        try:
+            short_press(WSAD_TO_ARROW[char])
+            short_delay()
+        except:
+            print(f"unable to convert {char}")
+            break
+
+
 def random_norm(mu, sigma, min=0.001, max=None):
     x = np.random.default_rng().normal(loc=mu, scale=sigma, size=1)[0]
     if min is not None:
@@ -94,7 +104,7 @@ def blink_with_key(key_code, arrow_key_code):
     return time.time() - t0
 
 
-def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0):
+def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0.0):
     t0 = time.time()
     time_hold_key_up = random_norm(hold_duration, hold_duration * 0.2)
     time_press_key_duration = random_norm(0.1, 0.02)
@@ -119,15 +129,17 @@ def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0):
 
 
 def blink(arrow_key_code):
-    return hold_press(arrow_key_code, KEY_BLINK)
+    arrow_key_duration = random_norm(0.3, 0.02, 0.24)
+    return hold_press(arrow_key_code, KEY_BLINK, arrow_key_duration)
 
 
 def down_jump():
-    return hold_press(KEY_DOWN_ARROW, KEY_JUMP)
+    arrow_key_duration = random_norm(0.3, 0.02, 0.24, 0.36)
+    return hold_press(KEY_DOWN_ARROW, KEY_JUMP, arrow_key_duration)
 
 
 def down_blink():
-    return hold_press(KEY_DOWN_ARROW, KEY_BLINK)
+    return blink(KEY_DOWN_ARROW)
 
 
 def jump_up_combo(combo_key_code):
@@ -172,20 +184,31 @@ def precise_delay(duration, stddev=0.01, frac_tolerance=0.2):
     delay(duration, stddev, duration * (1 - frac_tolerance), duration * (1 + frac_tolerance))
 
 
-def short_press(key_code):
+def short_press(key_code, exec=True):
     keyPress(key_code, random_norm(0.1, 0.02, 0.02, 0.18))
+
+
+def exec_key_sequence(seq):
+    for e in seq:
+        if e["event"] == "press":
+            keyDown(e["key"])
+        else:
+            keyUp(e["key"])
+        if e.get("delay"):
+            time.sleep(e["delay"])
 
 
 if __name__ == '__main__':
     import subprocess
-    # subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
-    # time.sleep(0.3)
+    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+    time.sleep(0.3)
     # print(blink_with_key(KEY_X, KEY_RIGHT_ARROW))
     # print(hold_press(KEY_DOWN_ARROW, KEY_C))
     # print(jump_up_combo(KEY_BLINK))
     # t0 = time.time()
     # print(wait_key('z'))
     # print('dd')
-    # print(time.time() - t0)
-
+    # print(timyye.time() - t0)
+    wsad = "wasd"
+    enter_rune_arrows(wsad)
 
