@@ -107,14 +107,16 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
                     filtered_im)
 
 
-def get_current_position_of(symbol, minimap_region=None):
+def get_current_position_of(symbol, minimap_region=None, confidence=0.8):
     if minimap_region is None:
         minimap_region = extract_minimap_region()
     with open(os.path.join(RESOURCES_DIR, "symbol_colors.json"), 'r') as f:
         symbol_colors = json.load(f)
     color = symbol_colors.get(symbol)
     im_name = os.path.join(RESOURCES_DIR, f"{symbol}.png")
-    symbol_box = locate_on_screen(im_name, minimap_region, 0.8, color)
+    symbol_box = locate_on_screen(im_name, minimap_region, confidence, color)
+    # while symbol_box is None and confidence > 0.5:
+    #     symbol_box = locate_on_screen(im_name, minimap_region, confidence - 0.1, color)
     if symbol_box is not None:
         return Position(int(symbol_box.left - minimap_region.left + int(symbol_box.width / 2)),
                         int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2)))
@@ -182,13 +184,14 @@ def check_time_to_up(skill_name, skill_region, skill_cd):
     """
     skill_im = screenshot(region=skill_region)
     est_frac_cd = check_frac_cd_to_up(skill_name, skill_im)
-    # print(f"{est_frac_cd:.4f}", end=',  ')
+    # print(f"DEBUG: cd is {est_frac_cd:.4f}")
     if est_frac_cd > 0.2:
         result = ocr_colored_digits(skill_im[14:45, 14:45])
         if result and result.isdigit():
             return int(result) + 1
         return int(est_frac_cd * skill_cd)
     elif est_frac_cd < 0.02:
+        # print(f"DEBUG: cd is {est_frac_cd} of total.")
         return 0
     return 1
 
@@ -209,6 +212,10 @@ def get_window_size():
     return w * 2, h * 2
 
 
+def activate_window():
+    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+
+
 def preview_image(im, delay):
     cv2.namedWindow('image', cv2.WINDOW_AUTOSIZE)
     cv2.imshow('image', im)
@@ -221,14 +228,14 @@ def log(contents):
 
 
 if __name__ == '__main__':
-    # minimap_region = extract_minimap_region()
+    minimap_region = extract_minimap_region()
     # extract_symbol_on_minimap("rune", symbol_radius=3, location=(83*2,163*2))
     import time
 
-    # while 1:
-    #     print(get_current_position_of("player", minimap_region))
-    #     # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
-    #     time.sleep(1)
+    while 1:
+        print(get_current_position_of("player", minimap_region))
+        # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
+        time.sleep(1)
     # x0, y0 = get_window_pos()
     # w, h = get_window_size()
     # x1 = x0 + w
@@ -250,13 +257,13 @@ if __name__ == '__main__':
     #                 'tell application "Parallels Desktop" to activate'])
     # time.sleep(2)
     # screenshot("cd03.png")
-    skill_name = "infinity"
-    skill_region = get_skill_region("infinity2")
-    time.sleep(2)
-    t0 = time.perf_counter()
-    for t in range(1, 185):
-        # skill_im = screenshot(f"cd_inf_{t}.png", region=skill_region)
-        skill_im = screenshot(region=skill_region)
-        print(181 - int(time.perf_counter() - t0), end=': ')
-        print(check_time_to_up(skill_name, skill_region, 180))
-        time.sleep(t - time.perf_counter() + t0)
+    # skill_name = "infinity"
+    # skill_region = get_skill_region("infinity2")
+    # time.sleep(2)
+    # t0 = time.perf_counter()
+    # for t in range(1, 185):
+    #     # skill_im = screenshot(f"cd_inf_{t}.png", region=skill_region)
+    #     skill_im = screenshot(region=skill_region)
+    #     print(181 - int(time.perf_counter() - t0), end=': ')
+    #     print(check_time_to_up(skill_name, skill_region, 180))
+    #     time.sleep(t - time.perf_counter() + t0)

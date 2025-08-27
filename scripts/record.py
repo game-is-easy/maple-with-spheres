@@ -3,7 +3,7 @@ import json
 from pynput import keyboard
 from pathlib import Path
 
-duration = 30  # seconds
+duration = 10  # seconds
 output_file = Path("../data/recorded_sequence.json")
 
 events = []

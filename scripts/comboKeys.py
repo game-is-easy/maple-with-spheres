@@ -1,12 +1,100 @@
-from quartzKeys import keyDown, keyUp, keyPress
-from keyCodes import *
 from pynput import keyboard
 import numpy as np
-import time
 
 
-KEY_BLINK = KEY_V
-KEY_JUMP = KEY_C
+mode = "prl"
+
+if mode == "prl":
+    from keyInject import *
+
+    KEY_BLINK = PRL['V']
+    KEY_JUMP = PRL['C']
+    KEY_TS = PRL['4']
+    KEY_ERDA = PRL['E']
+    KEY_SPHERE = PRL['R']
+    KEY_1 = PRL['1']
+    KEY_BUFF = PRL['6']
+    KEY_BUFF2 = PRL['7']
+    KEY_ATT = PRL['X']
+    KEY_ATT2 = PRL['Z']
+    KEY_ATT3 = PRL['SPACE']
+    KEY_INTERACT = PRL['B']
+    KEY_COMBO = PRL["LEFT_ALT"]
+    KEY_GUILD_BOSS = PRL['8']
+    KEY_GUILD_DMG = PRL['9']
+    KEY_GUILD_CRITDMG = PRL['0']
+    KEY_A = PRL['A']
+    KEY_S = PRL['S']
+    KEY_UP_ARROW = PRL["UP"]
+    KEY_LEFT_ARROW = PRL["LEFT"]
+    KEY_RIGHT_ARROW = PRL["RIGHT"]
+    KEY_DOWN_ARROW = PRL["DOWN"]
+    KEY_ECHO = PRL["F6"]
+    KEY_ESC = PRL["ESCAPE"]
+
+    def exec_key_sequence(seq):
+        keySequence(seq)
+
+else:
+    from quartzKeys import keyDown, keyUp, keyPress
+    from keyCodes import *
+
+    KEY_BLINK = KEY_V
+    KEY_JUMP = KEY_C
+    KEY_TS = KEY_4
+    KEY_ERDA = KEY_E
+    KEY_SPHERE = KEY_R
+    KEY_BUFF = KEY_6
+    KEY_BUFF2 = KEY_7
+    KEY_ATT = KEY_X
+    KEY_ATT2 = KEY_Z
+    KEY_ATT3 = KEY_SPACE
+    KEY_INTERACT = KEY_B
+    KEY_COMBO = KEY_LEFT_ALT
+    KEY_GUILD_BOSS = key_codes['8']
+    KEY_GUILD_DMG = key_codes['9']
+    KEY_GUILD_CRITDMG = key_codes['0']
+    KEY_ECHO = key_codes['f6']
+
+    def exec_key_sequence(seq):
+        for e in seq:
+            if e["event"] == "press":
+                keyDown(e["key"])
+            else:
+                keyUp(e["key"])
+            if e.get("delay"):
+                time.sleep(e["delay"] / 1000)
+
+
+def add_event_to_json(j, key_code, event_type, delay):
+    # press all, release in reverse
+    j.append({"key": key_code, "event": event_type, "delay": int(delay * 1000)})
+    return j
+
+
+def get_keyDown_seq(key_code, delay=None):
+    if delay:
+        delay = float(np.max([delay, smallest_delay()]))
+        return [{"key": key_code, "event": "press", "delay": int(delay * 1000)}]
+    else:
+        return [{"key": key_code, "event": "press"}]
+
+
+def get_keyUp_seq(key_code, delay=None):
+    if delay:
+        delay = float(np.max([delay, smallest_delay()]))
+        return [{"key": key_code, "event": "release", "delay": int(delay * 1000)}]
+    else:
+        return [{"key": key_code, "event": "release"}]
+
+
+def get_keyPress_seq(key_code, duration=0.05, delay_after=0.0):
+    duration = float(np.max([duration, smallest_delay()]))
+    delay_after = float(np.max([delay_after, smallest_delay()]))
+    return [
+        {"key": key_code, "event": "press", "delay": int(duration * 1000)},
+        {"key": key_code, "event": "release", "delay": int(delay_after * 1000)}
+    ]
 
 
 def wait_key(*keys, max_timeout=10):
@@ -30,13 +118,14 @@ def wait_key(*keys, max_timeout=10):
 
 
 def enter_rune_arrows(wsad):
+    seq = []
     for char in wsad.strip().lower():
         try:
-            short_press(WSAD_TO_ARROW[char])
-            short_delay()
+            seq += short_press(WASD_TO_ARROW[char], 2, False)
         except:
             print(f"unable to convert {char}")
-            break
+            return False
+    exec_key_sequence(seq)
 
 
 def random_norm(mu, sigma, min=0.001, max=None):
@@ -53,12 +142,10 @@ def random_unif(max, min=0):
 
 
 def smallest_delay():
-    return 0.01 + random_unif(0.01)
+    return 0.03 + random_unif(0.01)
 
 
-def blink_with_key(key_code, arrow_key_code):
-    t0 = time.time()
-    keyDown(key_code)
+def blink_with_key(key_code, arrow_key_code, delay_after_rep=0, execute=True):
     time_key_up = random_norm(0.1024, 0.0186, smallest_delay(), 0.15 - smallest_delay())
     time_blink_down = random_norm(0.1894, 0.0351, smallest_delay(), 0.3 - smallest_delay())
     time_blink_press = random_norm(0.0997, 0.0137, smallest_delay(), 0.15 - smallest_delay())
@@ -66,92 +153,97 @@ def blink_with_key(key_code, arrow_key_code):
     time_arrow_down = random_norm(0.1069, 0.0417, smallest_delay(), time_blink_down - smallest_delay())
     time_arrow_up = random_norm(0.55, 0.0756, 0.44 + smallest_delay(), 0.66 - smallest_delay())
     if time_key_up < time_arrow_down:
-        time.sleep(time_key_up)
-        keyUp(key_code)
-        time.sleep(time_arrow_down - time_key_up)
-        keyDown(arrow_key_code)
-        time.sleep(time_blink_down - time_arrow_down)
-        keyPress(KEY_BLINK, time_blink_press)
-        time.sleep(time_arrow_up - time_blink_up)
-        keyUp(arrow_key_code)
-    else:
-        time.sleep(time_arrow_down)
-        keyDown(arrow_key_code)
-        if time_key_up < time_blink_down:
-            time.sleep(time_key_up - time_arrow_down)
-            keyUp(key_code)
-            time.sleep(time_blink_down - time_key_up)
-            keyDown(KEY_BLINK)
-            time.sleep(time_blink_press)
-            keyUp(KEY_BLINK)
-            time.sleep(time_arrow_up - time_blink_up)
+        seq = get_keyDown_seq(key_code, time_key_up)
+        seq.extend(get_keyUp_seq(key_code, time_arrow_down - time_key_up))
+        seq.extend(get_keyDown_seq(arrow_key_code, time_blink_down - time_arrow_down))
+        seq.extend(get_keyPress_seq(KEY_BLINK, time_blink_press, time_arrow_up - time_blink_up))
+        if delay_after_rep > 0:
+            seq.extend(get_keyUp_seq(arrow_key_code, get_short_delay(delay_after_rep)))
         else:
-            time.sleep(time_blink_down - time_arrow_down)
+            seq.extend(get_keyUp_seq(arrow_key_code))
+    else:
+        seq = get_keyDown_seq(key_code, time_arrow_down)
+        if time_key_up < time_blink_down:
+            seq.extend(get_keyDown_seq(arrow_key_code, time_key_up - time_arrow_down))
+            seq.extend(get_keyUp_seq(key_code, time_blink_down - time_key_up))
+            seq.extend(get_keyPress_seq(KEY_BLINK, time_blink_press, time_arrow_up - time_blink_up))
+        else:
+            seq.extend(get_keyDown_seq(arrow_key_code, time_blink_down - time_arrow_down))
             keyDown(KEY_BLINK)
             if time_key_up < time_blink_up:
-                time.sleep(time_key_up - time_blink_down)
-                keyUp(key_code)
-                time.sleep(time_blink_up - time_key_up)
-                keyUp(KEY_BLINK)
-                time.sleep(time_arrow_up - time_blink_up)
+                seq.extend(get_keyDown_seq(KEY_BLINK, time_key_up - time_blink_down))
+                seq.extend(get_keyUp_seq(key_code, time_blink_up - time_key_up))
+                seq.extend(get_keyUp_seq(KEY_BLINK, time_arrow_up - time_blink_up))
             else:
-                time.sleep(time_blink_press)
-                keyUp(KEY_BLINK)
-                time.sleep(time_key_up - time_blink_up)
-                keyUp(key_code)
-                time.sleep(time_arrow_up - time_key_up)
-        keyUp(arrow_key_code)
-    return time.time() - t0
-
-
-def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0.0):
-    t0 = time.time()
-    time_hold_key_up = random_norm(hold_duration, hold_duration * 0.2)
-    time_press_key_duration = random_norm(0.1, 0.02)
-    keyDown(hold_key_code)
-    short_delay()
-    keyDown(press_key_code)
-    t1 = time.time() - t0
-    time_press_key_up = t1 + time_press_key_duration
-    if time_press_key_up < time_hold_key_up:
-        time.sleep(time_press_key_duration)
-        keyUp(press_key_code)
-        time.sleep(time_hold_key_up - time_press_key_up)
-        keyUp(hold_key_code)
+                seq.extend(get_keyPress_seq(KEY_BLINK, time_blink_press, time_key_up - time_blink_up))
+                seq.extend(get_keyUp_seq(key_code, time_arrow_up - time_key_up))
+        seq.extend(get_keyUp_seq(arrow_key_code, get_short_delay(delay_after_rep)))
+    if execute:
+        exec_key_sequence(seq)
     else:
-        time.sleep(np.max([time_hold_key_up - t1, smallest_delay()]))
-        keyUp(hold_key_code)
-        time.sleep(time_press_key_up - time_hold_key_up)
-        keyUp(press_key_code)
+        return seq
+
+
+def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0.0, execute=True):
+    # hold_duration = random_norm(hold_duration, hold_duration * 0.2)
+    press_key_duration = get_short_delay()
+    delay_before_press = get_short_delay()
+    seq = get_keyDown_seq(hold_key_code, delay_before_press)
+    # keyDown(hold_key_code)
+    # short_delay()
+    # keyDown(press_key_code)
+    # t1 = time.time() - t0
+    # time_press_key_up = t1 + press_key_duration
+    if press_key_duration + delay_before_press < hold_duration:
+        seq.extend(get_keyPress_seq(press_key_code, press_key_duration, hold_duration - press_key_duration - delay_before_press))
+        seq.extend(get_keyUp_seq(hold_key_code))
+        # time.sleep(press_key_duration)
+        # keyUp(press_key_code)
+        # time.sleep(hold_duration - time_press_key_up)
+        # keyUp(hold_key_code)
+    else:
+        seq.extend(get_keyDown_seq(press_key_code, float(np.max([hold_duration - delay_before_press, smallest_delay()]))))
+        seq.extend(get_keyUp_seq(hold_key_code, float(np.max([press_key_duration + delay_before_press - hold_duration, smallest_delay()]))))
+        seq.extend(get_keyUp_seq(press_key_code))
+        # time.sleep(np.max([hold_duration - t1, smallest_delay()]))
+        # keyUp(hold_key_code)
+        # time.sleep(time_press_key_up - time_hold_key_up)
+        # keyUp(press_key_code)
     if delay_after > 0:
-        precise_delay(delay_after)
-    return time.time() - t0
+        seq.append({"delay": int(get_precise_delay(delay_after) * 1000)})
+        # precise_delay(delay_after)
+    if execute:
+        exec_key_sequence(seq)
+    else:
+        return seq
 
 
-def blink(arrow_key_code):
+def blink(arrow_key_code, delay_after=0.0, execute=True):
     arrow_key_duration = random_norm(0.3, 0.02, 0.24)
-    return hold_press(arrow_key_code, KEY_BLINK, arrow_key_duration)
+    return hold_press(arrow_key_code, KEY_BLINK, arrow_key_duration, delay_after, execute=execute)
 
 
-def down_jump():
-    arrow_key_duration = random_norm(0.3, 0.02, 0.24, 0.36)
-    return hold_press(KEY_DOWN_ARROW, KEY_JUMP, arrow_key_duration)
+def down_jump(delay_after=0.0, execute=True):
+    arrow_key_duration = random_norm(0.4, 0.03, 0.3, 0.5)
+    return hold_press(KEY_DOWN_ARROW, KEY_JUMP, arrow_key_duration, delay_after, execute=execute)
 
 
-def down_blink():
-    return blink(KEY_DOWN_ARROW)
+def down_blink(delay_after=0.0, execute=True):
+    return blink(KEY_DOWN_ARROW, delay_after, execute=execute)
 
 
-def jump_up_combo(combo_key_code):
-    t0 = time.time()
-    short_press(KEY_JUMP)
-    time.sleep(random_norm(0.2, 0.02, time.time() - t0 + 0.01, 0.25) - time.time() + t0)
-    keyDown(KEY_UP_ARROW)
-    time.sleep(random_norm(0.36, 0.02, 0.3, 0.42) - time.time() + t0)
-    keyPress(combo_key_code)
-    short_delay()
-    keyUp(KEY_UP_ARROW)
-    return time.time() - t0
+def jump_up_combo(combo_key_code, execute=True):
+    duration_jump_press = random_norm(0.1, 0.02, 0.04, 0.16)
+    delay_after_jump = random_norm(0.2, 0.02, duration_jump_press, 0.25) - duration_jump_press
+    seq = get_keyPress_seq(KEY_JUMP, duration_jump_press, delay_after_jump)
+    delay_before_key = random_norm(0.36, 0.02, 0.3, 0.42) - delay_after_jump - duration_jump_press
+    seq.extend(get_keyDown_seq(KEY_UP_ARROW, delay_before_key))
+    seq.extend(short_press(combo_key_code, 1, execute=False))
+    seq.extend(get_keyUp_seq(KEY_UP_ARROW))
+    if execute:
+        exec_key_sequence(seq)
+    else:
+        return seq
 
 
 def random_action(*actions):
@@ -164,44 +256,74 @@ def action_with_prob(action, prob):
     if np.random.random() < prob:
         return action
     else:
-        def f(*args):
-            pass
+        def f(*args, execute=True):
+            return None if execute else []
         return f
 
 
-def short_delay(rep=1):
+def get_short_delay(rep=1):
+    delay = 0.0
     for _ in range(rep):
-        time.sleep(random_norm(0.1, 0.02, 0.04, 0.16))
+        delay += random_norm(0.1, 0.02, 0.04, 0.16)
+    return delay
+
+
+def short_delay(rep=1):
+    time.sleep(get_short_delay(rep))
+
+
+def get_random_delay(duration, stddev=0.02, lb=0.01, ub=None):
+    if ub is None or ub < duration:
+        ub = np.inf
+    return random_norm(duration, stddev, lb, ub)
 
 
 def delay(duration, stddev=0.02, lb=0.01, ub=None):
-    if ub is None or ub < duration:
-        ub = np.inf
-    time.sleep(random_norm(duration, stddev, lb, ub))
+    time.sleep(get_random_delay(duration, stddev, lb, ub))
+
+
+def get_precise_delay(duration, stddev=0.01, frac_tolerance=0.2):
+    return get_random_delay(duration, stddev, duration * (1 - frac_tolerance), duration * (1 + frac_tolerance))
 
 
 def precise_delay(duration, stddev=0.01, frac_tolerance=0.2):
-    delay(duration, stddev, duration * (1 - frac_tolerance), duration * (1 + frac_tolerance))
+    time.sleep(get_precise_delay(duration, stddev, frac_tolerance))
 
 
-def short_press(key_code, exec=True):
-    keyPress(key_code, random_norm(0.1, 0.02, 0.02, 0.18))
+def short_press(key_code, delay_after_rep=0, execute=True):
+    if delay_after_rep > 0:
+        delay_after = get_short_delay(delay_after_rep)
+        seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.04, 0.16), delay_after)
+    else:
+        seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.04, 0.16))
+    if execute:
+        exec_key_sequence(seq)
+    else:
+        return seq
 
 
-def exec_key_sequence(seq):
-    for e in seq:
-        if e["event"] == "press":
-            keyDown(e["key"])
-        else:
-            keyUp(e["key"])
-        if e.get("delay"):
-            time.sleep(e["delay"])
+def multi_press(key_code, n_press=2, delay_after_rep=0, execute=True):
+    if delay_after_rep > 0:
+        delay_after = get_short_delay(delay_after_rep)
+    else:
+        delay_after = 0
+    seq = []
+    for _ in range(n_press - 1):
+        press_duration = random_norm(0.055, 0.012, smallest_delay())
+        delay_between = random_norm(0.1, 0.005)
+        seq.extend(get_keyPress_seq(key_code, press_duration, delay_between))
+    press_duration = random_norm(0.055, 0.012, smallest_delay())
+    seq.extend(get_keyPress_seq(key_code, press_duration, delay_after))
+    if execute:
+        exec_key_sequence(seq)
+    else:
+        return seq
 
 
 if __name__ == '__main__':
-    import subprocess
-    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
-    time.sleep(0.3)
+    # import subprocess
+    # subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+    # time.sleep(0.3)
     # print(blink_with_key(KEY_X, KEY_RIGHT_ARROW))
     # print(hold_press(KEY_DOWN_ARROW, KEY_C))
     # print(jump_up_combo(KEY_BLINK))
@@ -209,6 +331,8 @@ if __name__ == '__main__':
     # print(wait_key('z'))
     # print('dd')
     # print(timyye.time() - t0)
-    wsad = "wasd"
-    enter_rune_arrows(wsad)
+    # short_press(KEY_JUMP)
+    blink_with_key(KEY_ATT, KEY_RIGHT_ARROW)
+    # wsad = "wasd"
+    # enter_rune_arrows(wsad)
 

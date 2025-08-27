@@ -170,15 +170,16 @@ def pixel_match_color(x, y, expected_RGB_color, tolerance=0):
 
 
 if __name__ == '__main__':
-    import time
-    n_image = 1
-    for _ in range(3):
-        screencapture(region=(100,100,2,2))
-    # time.sleep(1)
-    t0 = time.perf_counter()
-    while time.perf_counter() - t0 < 0.2:
-        print("start", time.perf_counter() - t0)
-        screencapture(region=(100, 100, 500, 300))
-        print("end", time.perf_counter() - t0)
-        n_image += 1
+    # import time
+    # n_image = 1
+    # for _ in range(3):
+    #     screencapture(region=(100,100,2,2))
+    # # time.sleep(1)
+    # t0 = time.perf_counter()
+    # while time.perf_counter() - t0 < 0.2:
+    #     print("start", time.perf_counter() - t0)
+    #     screencapture(region=(100, 100, 500, 300))
+    #     print("end", time.perf_counter() - t0)
+    #     n_image += 1
     # screencapture("test002.png", (100, 100, 500, 300))
+    screenshot("test003.png")

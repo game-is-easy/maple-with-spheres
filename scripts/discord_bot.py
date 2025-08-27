@@ -5,8 +5,8 @@ import ssl
 import certifi
 from pynput import keyboard
 import threading
-import time
-from typing import Optional, Union
+import os
+from locate_im import screencapture
 
 # Create SSL context with proper certificates
 ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -23,7 +23,12 @@ class DiscordBotManager:
         self.waiting_for_reply = False
         self.reply_received = None
         self.key_pressed = None
-        self.target_user_id = None
+        # self.target_user_id = None
+        self.target_user_id = 304671527784284160
+        self.target_user = None
+        self.channel_id = 1405982674224681000
+        self.channel = None
+        self.rune_arrow_data = ''
 
         self._setup_bot()
 
@@ -43,7 +48,8 @@ class DiscordBotManager:
         @self.bot.event
         async def on_ready():
             print(f'{self.bot.user} has connected to Discord!')
-            print(f'Bot is ready to send DMs!')
+            self.channel = await self.bot.fetch_channel(self.channel_id)
+            self.target_user = await self.bot.fetch_user(self.target_user_id)
 
         @self.bot.event
         async def on_message(message):
@@ -63,6 +69,18 @@ class DiscordBotManager:
             # Process other bot commands
             await self.bot.process_commands(message)
 
+        @self.bot.command(name="see")
+        async def send_screenshot(ctx):
+            tmp_filename = "../temp/gamescreen.png"
+            screencapture(tmp_filename, region=(0, 150, 2560, 1440))
+            with open(tmp_filename, 'rb') as f:
+                picture = discord.File(f)
+                if ctx.guild is None:
+                    await self.target_user.send(file=picture)
+                else:
+                    await self.channel.send(file=picture)
+            os.unlink(tmp_filename)
+
     def start_bot(self):
         """Start the Discord bot in a background thread"""
         if self.bot_thread is not None and self.bot_thread.is_alive():
@@ -80,13 +98,13 @@ class DiscordBotManager:
         self.bot_thread.start()
 
         print("Bot starting in background...")
-        time.sleep(3)  # Give bot time to start
-
-        # Wait for bot to be ready
-        while not self.bot.is_ready():
-            time.sleep(0.1)
-
-        print("Bot is ready!")
+        # time.sleep(3)  # Give bot time to start
+        #
+        # # Wait for bot to be ready
+        # while not self.bot.is_ready():
+        #     time.sleep(0.1)
+        #
+        # print("Bot is ready!")
 
     def stop_bot(self):
         """Stop the Discord bot"""
@@ -102,14 +120,22 @@ class DiscordBotManager:
 
     def on_key_press(self, key, target_keys, callback):
         """Handle key press events"""
+        key_name_to_data = {
+            "Key.up": 'w',
+            "Key.down": 's',
+            "Key.left": 'a',
+            "Key.right": 'd'
+        }
         try:
-            if hasattr(key,
-                       'char') and key.char and key.char.lower() in target_keys:
+            if hasattr(key, 'char') and key.char and key.char.lower() in target_keys:
                 self.key_pressed = True
                 callback()
             elif key in target_keys:  # For special keys like keyboard.Key.space
                 self.key_pressed = True
                 callback()
+            elif str(key) in key_name_to_data:
+                print(key)
+                self.rune_arrow_data += key_name_to_data[str(key)]
         except AttributeError:
             # Special keys (ctrl, alt, etc.) don't have char
             if key in target_keys:
@@ -122,6 +148,22 @@ class DiscordBotManager:
                not self.key_pressed and
                self.reply_received is None):
             await asyncio.sleep(0.1)
+
+    async def async_send_message(self, user_id: int, message: str):
+        if not self.target_user:
+            if not self.target_user_id:
+                self.target_user_id = user_id
+            self.target_user = await self.bot.fetch_user(self.target_user_id)
+        await self.target_user.send(message)
+
+    def send_message(self, user_id: int, message: str):
+        if not self.is_ready():
+            return {'trigger': 'error', 'discord_reply': None,
+                    'success': False, 'error': 'Bot not ready'}
+        asyncio.run_coroutine_threadsafe(
+            self.async_send_message(user_id, message),
+            self.main_loop
+        )
 
     async def async_send_dm_and_wait_for_response(
             self,
@@ -136,21 +178,25 @@ class DiscordBotManager:
         self.waiting_for_reply = False
         self.reply_received = None
         self.key_pressed = None
-        self.target_user_id = user_id
+        self.rune_arrow_data = ''
+        if not self.target_user:
+            if not self.target_user_id:
+                self.target_user_id = user_id
+            self.target_user = await self.bot.fetch_user(self.target_user_id)
 
         try:
             # Send the DM first
-            user = await self.bot.fetch_user(user_id)
+            # user = await self.bot.fetch_user(user_id)
             print("----------")
-            print(f"Sending DM to {user.display_name}")
+            print(f"Sending DM to {self.target_user.display_name}")
 
             if image_path:
                 # Send local image
                 with open(image_path, 'rb') as f:
                     picture = discord.File(f)
-                    await user.send(content=message, file=picture)
+                    await self.target_user.send(content=message, file=picture)
             elif message:
-                await user.send(message)
+                await self.target_user.send(message)
 
             # print(f"DM sent successfully! Now waiting for key '{wait_keys}' or Discord reply...")
 
@@ -162,9 +208,9 @@ class DiscordBotManager:
 
             # Convert string key to list for checking
             if isinstance(wait_keys, str):
-                target_keys = [wait_keys.lower()]
+                target_keys = list(wait_keys.lower())
             else:
-                target_keys = [wait_keys]
+                target_keys = wait_keys
 
             listener = keyboard.Listener(
                 on_press=lambda key: self.on_key_press(key, target_keys,
@@ -198,7 +244,7 @@ class DiscordBotManager:
             # Determine what triggered the exit
             if self.key_pressed:
                 print(f"Resumed by keyboard input: '{wait_keys}'")
-                return {'trigger': 'key', 'discord_reply': None, 'success': True}
+                return {'trigger': 'key', 'arrow_data': self.rune_arrow_data, 'success': True}
             elif self.reply_received:
                 return {'trigger': 'discord', 'discord_reply': self.reply_received, 'success': True}
             else:
@@ -256,6 +302,11 @@ def start_bot(token_path="../resources/token.txt"):
     manager = get_bot_manager(token_path)
     manager.start_bot()
     return manager
+
+
+def send_text_message(user_id: int, message: str):
+    manager = get_bot_manager()
+    manager.send_message(user_id, message)
 
 
 def send_dm_and_wait_for_response(

@@ -19,10 +19,21 @@ def keyUp(key_code):
     key_event(key_code, False)
 
 
-def keyPress(key_code, duration=0.05):
+def keyPress(key_code, duration=0.05, delay_after=0.0):
     keyDown(key_code)
     time.sleep(duration)
     keyUp(key_code)
+    time.sleep(delay_after)
+
+
+def exec_key_sequence(seq):
+    for e in seq:
+        if e["event"] == "press":
+            keyDown(e["key"])
+        else:
+            keyUp(e["key"])
+        if e.get("delay"):
+            time.sleep(e["delay"])
 
 
 if __name__ == '__main__':
