@@ -39,17 +39,16 @@ def screencapture(image_name=None, region=None, retina_region=True, png_compress
     else:
         tmp_filename = image_name
     if region is None:
-        im = CGDisplayCreateImageForRect(CGMainDisplayID())
-        # subprocess.run(['screencapture', '-x', tmp_filename])
-        # im = cv2.imread(tmp_filename)
+        x, y, w, h = (0, 0, 3456, 2234)
+        # im = CGDisplayCreateImageForRect(CGMainDisplayID())
     else:
         x, y, w, h = region
-        if retina_region:
-            x //= 2
-            y //= 2
-            w //= 2
-            h //= 2
-        im = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(x, y, w, h))
+    if retina_region:
+        x //= 2
+        y //= 2
+        w //= 2
+        h //= 2
+    im = CGDisplayCreateImageForRect(CGMainDisplayID(), CGRectMake(x, y, w, h))
     w = Quartz.CGImageGetWidth(im)
     h = Quartz.CGImageGetHeight(im)
     rowbytes = Quartz.CGImageGetBytesPerRow(im)
@@ -116,7 +115,7 @@ def locate(needle_image, haystack_image, limit=10000, confidence=0.999):
 
 def locate_all_on_screen(im_name, region=None, confidence=0.999, target_color=None, color_tolerance=0):
     needle_image = cv2.imread(im_name)
-    haystack_image = screenshot(region=region)
+    haystack_image = screencapture(region=region)
     if target_color is not None:
         needle_image = filter_color(needle_image, target_color, color_tolerance)
         haystack_image = filter_color(haystack_image, target_color, color_tolerance)
@@ -135,8 +134,8 @@ def locate_all_on_screen(im_name, region=None, confidence=0.999, target_color=No
     return absolute_results
 
 
-def locate_on_screen(im_name, region=None, confidence=0.999, target_color=None):
-    results = locate_all_on_screen(im_name, region, confidence, target_color)
+def locate_on_screen(im_name, region=None, confidence=0.999, target_color=None, color_tolerance=0):
+    results = locate_all_on_screen(im_name, region, confidence, target_color, color_tolerance)
     return results[0] if len(results) > 0 else None
 
 
@@ -182,4 +181,5 @@ if __name__ == '__main__':
     #     print("end", time.perf_counter() - t0)
     #     n_image += 1
     # screencapture("test002.png", (100, 100, 500, 300))
-    screenshot("test003.png")
+    screenshot("screenshot_test.png")
+    screencapture("screencapture_test.png")

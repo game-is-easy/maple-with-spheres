@@ -7,6 +7,8 @@ from pynput import keyboard
 import threading
 import os
 from locate_im import screencapture
+from comboKeys import short_press, PRL
+from gameUI import get_window_region
 
 # Create SSL context with proper certificates
 ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -72,7 +74,7 @@ class DiscordBotManager:
         @self.bot.command(name="see")
         async def send_screenshot(ctx):
             tmp_filename = "../temp/gamescreen.png"
-            screencapture(tmp_filename, region=(0, 150, 2560, 1440))
+            screencapture(tmp_filename, region=get_window_region())
             with open(tmp_filename, 'rb') as f:
                 picture = discord.File(f)
                 if ctx.guild is None:
@@ -80,6 +82,17 @@ class DiscordBotManager:
                 else:
                     await self.channel.send(file=picture)
             os.unlink(tmp_filename)
+
+        @self.bot.command(name="press")
+        async def send_short_press(ctx, key_name: str):
+            if PRL.get(key_name.upper()):
+                short_press(PRL[key_name.upper()])
+            else:
+                message = f'No key with name "{key_name.upper()}".'
+                if ctx.guild is None:
+                    await self.target_user.send(message)
+                else:
+                    await self.channel.send(message)
 
     def start_bot(self):
         """Start the Discord bot in a background thread"""

@@ -130,8 +130,8 @@ def enter_rune_arrows(wsad):
 
 def random_norm(mu, sigma, min=0.001, max=None):
     x = np.random.default_rng().normal(loc=mu, scale=sigma, size=1)[0]
-    if min is not None:
-        x = np.max([min, x])
+    # if min is not None:
+    x = np.max([min, x])
     if max is not None:
         x = np.min([max, x])
     return float(x)
@@ -151,7 +151,7 @@ def blink_with_key(key_code, arrow_key_code, delay_after_rep=0, execute=True):
     time_blink_press = random_norm(0.0997, 0.0137, smallest_delay(), 0.15 - smallest_delay())
     time_blink_up = time_blink_down + time_blink_press
     time_arrow_down = random_norm(0.1069, 0.0417, smallest_delay(), time_blink_down - smallest_delay())
-    time_arrow_up = random_norm(0.55, 0.0756, 0.44 + smallest_delay(), 0.66 - smallest_delay())
+    time_arrow_up = random_norm(0.55, 0.0756, 0.45 + smallest_delay(), 0.66 - smallest_delay())
     if time_key_up < time_arrow_down:
         seq = get_keyDown_seq(key_code, time_key_up)
         seq.extend(get_keyUp_seq(key_code, time_arrow_down - time_key_up))
@@ -178,6 +178,7 @@ def blink_with_key(key_code, arrow_key_code, delay_after_rep=0, execute=True):
                 seq.extend(get_keyPress_seq(KEY_BLINK, time_blink_press, time_key_up - time_blink_up))
                 seq.extend(get_keyUp_seq(key_code, time_arrow_up - time_key_up))
         seq.extend(get_keyUp_seq(arrow_key_code, get_short_delay(delay_after_rep)))
+    seq.extend(get_keyUp_seq(arrow_key_code, smallest_delay()))  # test
     if execute:
         exec_key_sequence(seq)
     else:
@@ -188,29 +189,20 @@ def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0.0
     # hold_duration = random_norm(hold_duration, hold_duration * 0.2)
     press_key_duration = get_short_delay()
     delay_before_press = get_short_delay()
+    hold_duration += delay_before_press
+    delay_after = get_precise_delay(delay_after) if delay_after > 0 else delay_after
     seq = get_keyDown_seq(hold_key_code, delay_before_press)
-    # keyDown(hold_key_code)
-    # short_delay()
-    # keyDown(press_key_code)
-    # t1 = time.time() - t0
-    # time_press_key_up = t1 + press_key_duration
     if press_key_duration + delay_before_press < hold_duration:
-        seq.extend(get_keyPress_seq(press_key_code, press_key_duration, hold_duration - press_key_duration - delay_before_press))
-        seq.extend(get_keyUp_seq(hold_key_code))
-        # time.sleep(press_key_duration)
-        # keyUp(press_key_code)
-        # time.sleep(hold_duration - time_press_key_up)
-        # keyUp(hold_key_code)
+        delay_after_press = float(np.max([hold_duration - press_key_duration - delay_before_press, smallest_delay()]))
+        seq.extend(get_keyPress_seq(press_key_code, press_key_duration, delay_after_press))
+        seq.extend(get_keyUp_seq(hold_key_code, smallest_delay()))
     else:
         seq.extend(get_keyDown_seq(press_key_code, float(np.max([hold_duration - delay_before_press, smallest_delay()]))))
         seq.extend(get_keyUp_seq(hold_key_code, float(np.max([press_key_duration + delay_before_press - hold_duration, smallest_delay()]))))
-        seq.extend(get_keyUp_seq(press_key_code))
-        # time.sleep(np.max([hold_duration - t1, smallest_delay()]))
-        # keyUp(hold_key_code)
-        # time.sleep(time_press_key_up - time_hold_key_up)
-        # keyUp(press_key_code)
-    if delay_after > 0:
-        seq.append({"delay": int(get_precise_delay(delay_after) * 1000)})
+        seq.extend(get_keyUp_seq(press_key_code, smallest_delay()))
+    seq.extend(get_keyUp_seq(hold_key_code, delay_after))
+    # if delay_after > 0:
+    #     seq.append({"delay": int(get_precise_delay(delay_after) * 1000)})
         # precise_delay(delay_after)
     if execute:
         exec_key_sequence(seq)
@@ -219,7 +211,7 @@ def hold_press(hold_key_code, press_key_code, hold_duration=0.2, delay_after=0.0
 
 
 def blink(arrow_key_code, delay_after=0.0, execute=True):
-    arrow_key_duration = random_norm(0.3, 0.02, 0.24)
+    arrow_key_duration = random_norm(0.4, 0.04, 0.3)
     return hold_press(arrow_key_code, KEY_BLINK, arrow_key_duration, delay_after, execute=execute)
 
 
@@ -232,18 +224,59 @@ def down_blink(delay_after=0.0, execute=True):
     return blink(KEY_DOWN_ARROW, delay_after, execute=execute)
 
 
-def jump_up_combo(combo_key_code, execute=True):
+def jump_seq_combo(combo_seq, hold_key_code=None, delay_after_rep=0, execute=True):
     duration_jump_press = random_norm(0.1, 0.02, 0.04, 0.16)
-    delay_after_jump = random_norm(0.2, 0.02, duration_jump_press, 0.25) - duration_jump_press
-    seq = get_keyPress_seq(KEY_JUMP, duration_jump_press, delay_after_jump)
-    delay_before_key = random_norm(0.36, 0.02, 0.3, 0.42) - delay_after_jump - duration_jump_press
-    seq.extend(get_keyDown_seq(KEY_UP_ARROW, delay_before_key))
-    seq.extend(short_press(combo_key_code, 1, execute=False))
-    seq.extend(get_keyUp_seq(KEY_UP_ARROW))
+    delay_after_jump = float(np.max([random_norm(0.2, 0.02, duration_jump_press, 0.25) - duration_jump_press, smallest_delay()]))
+    delay_before_combo = random_norm(0.36, 0.02, 0.3, 0.42) - delay_after_jump - duration_jump_press
+    if hold_key_code is not None:
+        seq = get_keyPress_seq(KEY_JUMP, duration_jump_press, delay_after_jump)
+        seq.extend(get_keyDown_seq(hold_key_code, delay_before_combo))
+        seq.extend(combo_seq)
+        seq.extend(get_keyUp_seq(hold_key_code, get_short_delay(delay_after_rep)))
+    else:
+        seq = get_keyPress_seq(KEY_JUMP, duration_jump_press, delay_after_jump + delay_before_combo)
+        seq.extend(combo_seq)
+    if hold_key_code is not None:
+        seq.extend(get_keyUp_seq(hold_key_code))
     if execute:
         exec_key_sequence(seq)
     else:
         return seq
+
+
+def jump_direction_combo(direction_key_code, combo_key_code, delay_after_rep=0, execute=True):
+    # duration_jump_press = random_norm(0.1, 0.02, 0.04, 0.16)
+    # delay_after_jump = float(np.max([random_norm(0.2, 0.02, duration_jump_press, 0.25) - duration_jump_press, smallest_delay()]))
+    # delay_before_key = random_norm(0.36, 0.02, 0.3, 0.42) - delay_after_jump - duration_jump_press
+    # seq = get_keyPress_seq(KEY_JUMP, duration_jump_press, delay_after_jump)
+    # seq.extend(get_keyDown_seq(direction_key_code, delay_before_key))
+    # seq.extend(short_press(combo_key_code, 1, execute=False))
+    # seq.extend(get_keyUp_seq(direction_key_code, get_short_delay(delay_after_rep)))
+    combo_seq = short_press(combo_key_code, 1, execute=False)
+    return jump_seq_combo(combo_seq, hold_key_code=direction_key_code, delay_after_rep=delay_after_rep, execute=execute)
+    # if execute:
+    #     exec_key_sequence(seq)
+    # else:
+    #     return seq
+
+
+def jump_up_combo(combo_key_code, execute=True):
+    return jump_direction_combo(KEY_UP_ARROW, combo_key_code, execute)
+
+
+def jump_up_seq_combo(combo_seq, delay_after_rep=5, execute=True):
+    return jump_seq_combo(combo_seq, hold_key_code=KEY_UP_ARROW, delay_after_rep=delay_after_rep, execute=execute)
+
+
+def up_jump(delay_after_rep=8, execute=True):
+    return jump_up_seq_combo([], delay_after_rep=delay_after_rep, execute=execute)
+
+
+def up_jump_blink(delay_after_rep=5, execute=True):
+    delay_after_up_jump = random_norm(0.4, 0.02, 0.35, 0.45)
+    seq = get_keyPress_seq(KEY_JUMP, get_short_delay(), delay_after_up_jump)
+    seq.extend(short_press(KEY_BLINK, delay_after_rep=1, execute=False))
+    return jump_seq_combo(seq, hold_key_code=KEY_UP_ARROW, delay_after_rep=delay_after_rep, execute=execute)
 
 
 def random_action(*actions):
@@ -264,7 +297,7 @@ def action_with_prob(action, prob):
 def get_short_delay(rep=1):
     delay = 0.0
     for _ in range(rep):
-        delay += random_norm(0.1, 0.02, 0.04, 0.16)
+        delay += random_norm(0.1, 0.015, 0.06, 0.14)
     return delay
 
 
@@ -293,9 +326,9 @@ def precise_delay(duration, stddev=0.01, frac_tolerance=0.2):
 def short_press(key_code, delay_after_rep=0, execute=True):
     if delay_after_rep > 0:
         delay_after = get_short_delay(delay_after_rep)
-        seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.04, 0.16), delay_after)
+        seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.06, 0.15), delay_after)
     else:
-        seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.04, 0.16))
+        seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.06, 0.15))
     if execute:
         exec_key_sequence(seq)
     else:
@@ -321,9 +354,12 @@ def multi_press(key_code, n_press=2, delay_after_rep=0, execute=True):
 
 
 if __name__ == '__main__':
-    # import subprocess
-    # subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
-    # time.sleep(0.3)
+    import subprocess
+    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+    time.sleep(0.3)
+    # while 1:
+    #     delay_rep = int(np.random.random() * 3) + 1
+    #     short_press(PRL['SPACE'], delay_after_rep=delay_rep)
     # print(blink_with_key(KEY_X, KEY_RIGHT_ARROW))
     # print(hold_press(KEY_DOWN_ARROW, KEY_C))
     # print(jump_up_combo(KEY_BLINK))
@@ -332,7 +368,22 @@ if __name__ == '__main__':
     # print('dd')
     # print(timyye.time() - t0)
     # short_press(KEY_JUMP)
-    blink_with_key(KEY_ATT, KEY_RIGHT_ARROW)
+    # blink_with_key(KEY_ATT, KEY_RIGHT_ARROW)
     # wsad = "wasd"
     # enter_rune_arrows(wsad)
 
+    # 0.125 - 0.175: move by 2
+    # 0.175 - 0.2: move by 4
+    # 0.2 - 0.24: move by 6
+    # 0.24 - 0.28: move by 8
+    # keyPress(KEY_RIGHT_ARROW, 0.28)
+
+    from jobs.ExpMages import IL
+    from gameUI import get_current_position_of
+    time.sleep(0.3)
+
+    character = IL("Top Deck Passage 6")
+    rune_position = get_current_position_of("rune", character.map.minimap_region)
+    character.go_to(rune_position, need_jump_combo=True, tolerance_x=4, tolerance_y=4, teleport_to_position=True)
+    # tp_from = character.map.tp_positions[2]
+    # character.enter_door(tp_from, tp_from.next())

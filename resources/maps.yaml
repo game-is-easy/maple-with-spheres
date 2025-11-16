@@ -1,0 +1,102 @@
+# levels.yaml
+
+- name: "Top Deck Passage 6"
+  region: "Arteria"
+  top_level: 50
+  starting_position: [276, 36]
+  erda_position: [204, 72]
+  snow_spirit_position: [120, 150]
+  sphere_positions:
+    - [204, 132]
+    - [278, 124]
+    - [68, 136]
+  loot_series:
+    - position: [280, 84]
+      params:
+        tolerance_x: 20
+        tolerance_y: 30
+        delay_after_rep: 0
+    - position: [280, 124]
+      params:
+        tolerance_x: 20
+        tolerance_y: 30
+        delay_after_rep: 20
+    - action: "attack"
+      params:
+        delay_after_rep: 10
+    - position: [200, 132]
+      params:
+        tolerance_x: 20
+        tolerance_y: 30
+        delay_after_rep: 15
+    - position: [120, 150]
+      params:
+        tolerance_x: 10
+        tolerance_y: 30
+        delay_after_rep: 0
+    - action: "snow_of_spirit"
+      params:
+        delay_after_rep: 5
+    - position: [276, 36]
+      params:
+        tolerance_x: 4
+        tolerance_y: 4
+        delay_after_rep: 0
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 240, 36 ]
+        - [ 240, 132 ]
+        - [ 68, 136 ]
+    - loop: false
+      positions:
+        - [ 48, 150 ]
+        - [ 90, 72 ]
+        - [ 168, 132 ]
+        - [ 334, 150 ]
+        - [ 346, 80 ]
+        - [ 240, 36 ]
+  tp_positions_coverage: [85, 50]
+  reset_position: null
+  platforms:
+    - x: [152, 324]
+      y: 36
+      rope: [260]
+    - x: [136, 170]
+      y: 50
+      rope: [152]
+    - x: [266, 314]
+      y: 50
+      rope: [290]
+    - x: [66, 114]
+      y: 72
+      rope: [98]
+    - x: [192, 224]
+      y: 72
+    - x: [314, 360]
+      y: 80
+      rope: [350]
+    - x: [160, 306]
+      y: 84
+      rope: [252]
+    - x: [24, 82]
+      y: 96
+      rope: [52]
+    - x: [120, 154]
+      y: 102
+      rope: [138]
+    - x: [60, 106]
+      y: 114
+    - x: [260, 320]
+      y: 124
+    - x: [160, 254]
+      y: 132
+    - x: [56, 104]
+      y: 136
+    - x: [0, 380]
+      y: 150
+
+- name: "Blooming Spring 1"
+  region: "Shangri-La"
+  start_position: [84, 86]
+  reset_position: [84, 62]

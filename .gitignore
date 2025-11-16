@@ -1,5 +1,6 @@
 .idea/*
 training
+training-proc
 scripts/*.png
 scripts/out
 *.DS_Store

@@ -1,7 +1,8 @@
 import json
+import time
 
 from scripts.locate_im import *
-from ocr import ocr_colored_digits
+from scripts.ocr import ocr_colored_digits
 from datetime import datetime
 import subprocess
 import os.path
@@ -9,14 +10,24 @@ import os.path
 DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 RESOURCES_DIR = os.path.join(DIR, "resources")
 
-INF1_KEY_REGION = Box(2352, 1434, 60, 60)
-INF2_KEY_REGION = Box(2422, 1434, 60, 60)
+MINIMAP_POSITION_DEFAULT = (30, 342)
 
 
-def extract_minimap_region(img=None, search_frac=0.3, blur_kernel=(7, 7),
+def find_minimap_ui(map_name, img=None):
+    if img is None:
+        x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), region=get_window_region(), confidence=0.8)
+    else:
+        x, y, _, _ = locate(os.path.join(DIR, f"resources/{map_name}.png"), img, confidence=0.9)
+    return x - 20, y + 66
+
+
+def extract_minimap_region(map_name="arteria", img=None, search_frac=1, blur_kernel=(7, 7),
                            canny_params=(30, 100), im_show=False):
     if img is None:
-        img = screenshot()
+        minimap_ui_x, minimap_ui_y = find_minimap_ui(map_name)
+        img = screencapture(region=(minimap_ui_x, minimap_ui_y, 1000, 800))
+    else:
+        minimap_ui_x, minimap_ui_y = find_minimap_ui(map_name, img)
     h, w = img.shape[:2]
 
     # 1) only search in the upper-left quarter (or whatever)
@@ -40,7 +51,7 @@ def extract_minimap_region(img=None, search_frac=0.3, blur_kernel=(7, 7),
             area = wc * hc
             ar = wc / float(hc)
             # 3) filter by a “minimap‑ish” aspect ratio (e.g. ~3:1)
-            if 1.5 < ar < 5.0 and area > 2000:
+            if 1.0 < ar < 3.0 and area > 20000:
                 if area > best_area:
                     best_area = area
                     best = (x, y, wc, hc)
@@ -51,7 +62,7 @@ def extract_minimap_region(img=None, search_frac=0.3, blur_kernel=(7, 7),
             cv2.rectangle(img, (x, y), (x + wc, y + hc), (0, 0, 255), 3)
             cv2.namedWindow('minimap detected', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('minimap detected', img)
-        return Box(x, y, wc, hc)
+        return Box(x + minimap_ui_x, y + minimap_ui_y, wc, hc)
 
 
 def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
@@ -60,11 +71,11 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
     #     im = screenshot()
     # else:
     #     im = cv2.imread(im_name)
-    im = screenshot()
-    minimap_region = extract_minimap_region(im, im_show=False)
+    im = screencapture()
+    minimap_region = extract_minimap_region()
     if minimap_region:
         x, y, w, h = minimap_region
-        im = im[0:y + h, 0:x + w]
+        im = im[y:y + h, x:x + w]
     else:
         log("minimap detection fails")
         return
@@ -75,6 +86,8 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
                 location[0] < symbol_radius or location[1] < symbol_radius:
             return
         xc, yc = location
+        xc -= x
+        yc -= y
         pixels = im[yc - symbol_radius:yc + symbol_radius,
                  xc - symbol_radius:xc + symbol_radius]
         pixels = pixels.reshape(-1, 3)
@@ -107,35 +120,43 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
                     filtered_im)
 
 
-def get_current_position_of(symbol, minimap_region=None, confidence=0.8):
+def get_current_position_of(symbol, minimap_region=None, map_name=None, confidence=0.8, attempts=3):
+    if attempts <= 0:
+        return None
     if minimap_region is None:
-        minimap_region = extract_minimap_region()
+        minimap_region = extract_minimap_region(map_name)
     with open(os.path.join(RESOURCES_DIR, "symbol_colors.json"), 'r') as f:
         symbol_colors = json.load(f)
     color = symbol_colors.get(symbol)
     im_name = os.path.join(RESOURCES_DIR, f"{symbol}.png")
-    symbol_box = locate_on_screen(im_name, minimap_region, confidence, color)
+    symbol_box = locate_on_screen(im_name, minimap_region, confidence, color, 5)
     # while symbol_box is None and confidence > 0.5:
     #     symbol_box = locate_on_screen(im_name, minimap_region, confidence - 0.1, color)
     if symbol_box is not None:
+        # return Position(int(symbol_box.left - minimap_region.left + int(symbol_box.width / 2)),
+                        # int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2)))
         return Position(int(symbol_box.left - minimap_region.left + int(symbol_box.width / 2)),
                         int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2)))
+    time.sleep(0.5)
+    return get_current_position_of(symbol, minimap_region, confidence=confidence * 0.9, attempts=attempts - 1)
 
 
-def is_overlap_x(position1, position2, tolerance=2):
-    return abs(position1[0] - position2[0]) <= tolerance
+def is_overlap_x(current_position, target_position, tolerance=2, tolerance_left=None, tolerance_right=None):
+    if tolerance_left is not None and tolerance_right is not None:
+        return target_position.x - tolerance_left <= current_position.x <= target_position.x + tolerance_right
+    return abs(current_position.x - target_position.x) <= tolerance
 
 
 def is_overlap_y(position1, position2, tolerance=2):
-    return abs(position1[1] - position2[1]) <= tolerance
+    return abs(position1.y - position2.y) <= tolerance
 
 
-def is_overlap(position1, position2, tolerance_x=2, tolerance_y=2):
-    return is_overlap_x(position1, position2, tolerance_x) and is_overlap_y(position1, position2, tolerance_y)
+def is_overlap(position1, position2, tolerance_x=2, tolerance_y=2, tolerance_x_left=None, tolerance_x_right=None):
+    return is_overlap_x(position1, position2, tolerance_x, tolerance_x_left, tolerance_x_right) and is_overlap_y(position1, position2, tolerance_y)
 
 
-def current_at_position(position, minimap_region=None, tolerance_x=2, tolerance_y=2):
-    return is_overlap(get_current_position_of("player", minimap_region), position, tolerance_x, tolerance_y)
+def current_at_position(position, minimap_region=None, tolerance_x=2, tolerance_y=2, tolerance_x_left=None, tolerance_x_right=None):
+    return is_overlap(get_current_position_of("player", minimap_region), position, tolerance_x, tolerance_y, tolerance_x_left, tolerance_x_right)
 
 
 def detect_skill_region(skill_name, save=False, unreliable_memory_copy=False):
@@ -182,7 +203,11 @@ def check_time_to_up(skill_name, skill_region, skill_cd):
     :param skill_cd: int
     :return: 0 if up; 1 if ≤5 seconds; 6-60 accurate; 60+ estimate.
     """
-    skill_im = screenshot(region=skill_region)
+    x, y, w, h = skill_region
+    window_pos_x, window_pos_y = get_window_pos()
+    window_pos_y -= 144
+    abs_skill_region = (x + window_pos_x, y + window_pos_y, w, h)
+    skill_im = screencapture(region=abs_skill_region)
     est_frac_cd = check_frac_cd_to_up(skill_name, skill_im)
     # print(f"DEBUG: cd is {est_frac_cd:.4f}")
     if est_frac_cd > 0.2:
@@ -190,8 +215,8 @@ def check_time_to_up(skill_name, skill_region, skill_cd):
         if result and result.isdigit():
             return int(result) + 1
         return int(est_frac_cd * skill_cd)
-    elif est_frac_cd < 0.02:
-        # print(f"DEBUG: cd is {est_frac_cd} of total.")
+    elif est_frac_cd < 0.025:
+        print(f"DEBUG: cd is {est_frac_cd} of total.")
         return 0
     return 1
 
@@ -201,7 +226,7 @@ def get_window_pos():
                           'tell application "System Events" to tell process "Parallels Desktop" to get position of window 1'],
                          stdout=subprocess.PIPE)
     x0, y0 = [int(n) for n in pos.stdout.decode("utf-8").strip().split(", ")]
-    return x0 * 2, y0 * 2
+    return x0 * 2, y0 * 2 + 76
 
 
 def get_window_size():
@@ -212,8 +237,30 @@ def get_window_size():
     return w * 2, h * 2
 
 
-def activate_window():
-    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+def get_window_region():
+    return *get_window_pos(), *get_window_size()
+
+
+def get_active_application():
+    script = '''tell application "System Events"
+    set frontmostProcessName to name of the first process whose frontmost is true
+    set processBid to get the bundle identifier of process frontmostProcessName
+    set applicationName to file of (application processes where bundle identifier is processBid)
+end tell
+return applicationName as string'''
+
+    try:
+        result_bytes = subprocess.check_output(["osascript", "-e", script])
+        result_string = result_bytes.decode('utf-8').strip()
+        app_name = result_string[result_string.find("Applications:") + len("Applications:"):result_string.find(".app")]
+        return app_name
+    except subprocess.CalledProcessError as e:
+        log(f"Error executing AppleScript: {e}")
+        return None
+
+
+def activate_window(window_name="Parallels Desktop"):
+    subprocess.run(["osascript", "-e", f'tell application "{window_name}" to activate'])
 
 
 def preview_image(im, delay):
@@ -228,20 +275,41 @@ def log(contents):
 
 
 if __name__ == '__main__':
+    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+    time.sleep(0.5)
+    # skill_name = "infinity2"
+    # print(check_frac_cd_to_up(skill_name, screencapture(region=get_skill_region(skill_name))))
+    # x0, y0 = get_window_pos()
+    # w, h = get_window_size()
+    # x1 = x0 + w
+    # y1 = y0 + h
+    # screenshot("testinf.png", region=get_skill_region("infinity"))
+    # screencapture("new_ui.png", region=(x0,y0,x1,y1))
+
     minimap_region = extract_minimap_region()
-    # extract_symbol_on_minimap("rune", symbol_radius=3, location=(83*2,163*2))
+    print(minimap_region)
+    # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
     import time
 
     while 1:
         print(get_current_position_of("player", minimap_region))
         # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
         time.sleep(1)
-    # x0, y0 = get_window_pos()
-    # w, h = get_window_size()
+
+    # print(get_window_region())
     # x1 = x0 + w
     # y1 = y0 + h
-    # screenshot("test002.png")
-    # res = locate_all_on_screen(os.path.join(DIR, "resources/infinity.png"), region=(1400, 1400, 1160, 180), confidence=0.9)
+    # screencapture("test.png")
+
+    # skill_name = "guild_critdmg"
+    # res = locate_on_screen(os.path.join(DIR, f"resources/{skill_name}.png"), region=(1400, 1280, 1160, 300), confidence=0.9)
+    # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'r') as f:
+    #     data = json.load(f)
+    # data.update({skill_name: res})
+    # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'w') as f:
+    #     json.dump(data, f)
+
+    # res = locate_all_on_screen(os.path.join(DIR, "resources/infinity.png"), confidence=0.9)
     # regions = []
     # for r in res:
     #     regions.append([])
@@ -250,7 +318,9 @@ if __name__ == '__main__':
     # print(regions)
     # d = {"infinity": regions[0],
     #      "infinity2": regions[1]}
-    # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'w') as f:
+    # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'wr') as f:
+    #     originals = json.load(f)
+    #     d.update(originals)
     #     json.dump(d, f)
     # import subprocess
     # subprocess.run(["osascript", "-e",
@@ -258,7 +328,11 @@ if __name__ == '__main__':
     # time.sleep(2)
     # screenshot("cd03.png")
     # skill_name = "infinity"
-    # skill_region = get_skill_region("infinity2")
+    # x,y,w,h = get_skill_region("infinity2")
+    # window_pos_x, window_pos_y = get_window_pos()
+    # window_pos_y -= 144
+    # abs_skill_region = (x + window_pos_x, y + window_pos_y, w, h)
+    # print(abs_skill_region)
     # time.sleep(2)
     # t0 = time.perf_counter()
     # for t in range(1, 185):
