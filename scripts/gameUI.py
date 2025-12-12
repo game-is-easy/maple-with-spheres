@@ -133,18 +133,24 @@ def get_current_position_of(symbol, minimap_region=None, map_name=None, confiden
     # while symbol_box is None and confidence > 0.5:
     #     symbol_box = locate_on_screen(im_name, minimap_region, confidence - 0.1, color)
     if symbol_box is not None:
+        x = int(symbol_box.left - minimap_region.left + int(symbol_box.width / 2))
+        y = int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2))
+        if symbol == "rune":
+            y += 1
         # return Position(int(symbol_box.left - minimap_region.left + int(symbol_box.width / 2)),
-                        # int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2)))
-        return Position(int(symbol_box.left - minimap_region.left + int(symbol_box.width / 2)),
-                        int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2)))
-    time.sleep(0.5)
+        #                 int(symbol_box.top - minimap_region.top + int(symbol_box.height / 2)))
+        return Position(x, y)
+    time.sleep(1)
     return get_current_position_of(symbol, minimap_region, confidence=confidence * 0.9, attempts=attempts - 1)
 
 
 def is_overlap_x(current_position, target_position, tolerance=2, tolerance_left=None, tolerance_right=None):
-    if tolerance_left is not None and tolerance_right is not None:
-        return target_position.x - tolerance_left <= current_position.x <= target_position.x + tolerance_right
-    return abs(current_position.x - target_position.x) <= tolerance
+    tolerance_left = tolerance_left or tolerance
+    tolerance_right = tolerance_right or tolerance
+    # if tolerance_left is not None and tolerance_right is not None:
+    #     return target_position.x - tolerance_left <= current_position.x <= target_position.x + tolerance_right
+    return target_position.x - tolerance_left <= current_position.x <= target_position.x + tolerance_right
+    # return abs(current_position.x - target_position.x) <= tolerance
 
 
 def is_overlap_y(position1, position2, tolerance=2):
@@ -157,6 +163,11 @@ def is_overlap(position1, position2, tolerance_x=2, tolerance_y=2, tolerance_x_l
 
 def current_at_position(position, minimap_region=None, tolerance_x=2, tolerance_y=2, tolerance_x_left=None, tolerance_x_right=None):
     return is_overlap(get_current_position_of("player", minimap_region), position, tolerance_x, tolerance_y, tolerance_x_left, tolerance_x_right)
+
+
+def check_skill_use_popup():
+    dialog_check_im_path = os.path.join(RESOURCES_DIR, "cancel.png")
+    return locate_on_screen(dialog_check_im_path, region=(1300, 940, 160, 50), confidence=0.9)
 
 
 def detect_skill_region(skill_name, save=False, unreliable_memory_copy=False):
@@ -216,7 +227,7 @@ def check_time_to_up(skill_name, skill_region, skill_cd):
             return int(result) + 1
         return int(est_frac_cd * skill_cd)
     elif est_frac_cd < 0.025:
-        print(f"DEBUG: cd is {est_frac_cd} of total.")
+        # print(f"DEBUG: cd is {est_frac_cd} of total.")
         return 0
     return 1
 
@@ -284,9 +295,10 @@ if __name__ == '__main__':
     # x1 = x0 + w
     # y1 = y0 + h
     # screenshot("testinf.png", region=get_skill_region("infinity"))
-    # screencapture("new_ui.png", region=(x0,y0,x1,y1))
+    screencapture("new_ui.png")
 
-    minimap_region = extract_minimap_region()
+    minimap_region = extract_minimap_region("Carcion")
+    # minimap_region = extract_minimap_region("carcion")
     print(minimap_region)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
     import time

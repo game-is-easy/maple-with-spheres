@@ -1,9 +1,109 @@
-# levels.yaml
+# maps.yaml
+
+- name: "Sunken Ruins 4"
+  region: "Carcion"
+  top_level: 50
+  start_position: [52, 96]
+  erda_position: [66, 96]
+  standby_position: [66, 96]
+  sphere_positions:
+    - [128, 92]
+    - [210, 100]
+    - [282, 94]
+  loot_series:
+    - position: [112, 92]
+      params:
+        tolerance_x: 18
+        tolerance_y: 10
+        delay_after_rep: 20
+    - position: [158, 100]
+      params:
+        tolerance_x: 18
+        tolerance_y: 10
+        delay_after_rep: 5
+    - action: "attack"
+      params:
+        delay_after_rep: 15
+    - position: [200, 100]
+      params:
+        tolerance_x: 18
+        tolerance_y: 10
+        delay_after_rep: 15
+    - position: [272, 94]
+      params:
+        tolerance_x: 10
+        tolerance_y: 10
+        delay_after_rep: 0
+    - action: "snow_of_spirit"
+      params:
+        delay_after_rep: 20
+#    - position: [276, 36]
+#      params:
+#        tolerance_x: 4
+#        tolerance_y: 4
+#        delay_after_rep: 0
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 52, 124 ]
+        - [ 116, 92 ]
+    - loop: true
+      positions:
+        - [ 304, 124 ]
+        - [ 234, 96 ]
+  tp_positions_coverage: [30, 16]
+  exit_positions:
+    - [30, 124]
+  reset_position: null
+  platforms:
+    - x: [ 238, 274 ]
+      y: 56
+      rope: [ 270 ]
+    - x: [ 284, 320 ]
+      y: 56
+    - x: [22, 58]
+      y: 58
+      rope: [56]
+    - x: [76, 114]
+      y: 58
+    - x: [138, 174]
+      y: 60
+    - x: [182, 218]
+      y: 60
+      rope: [202]
+    - x: [ 238, 274 ]
+      y: 74
+    - x: [ 284, 320 ]
+      y: 74
+      rope: [ 304 ]
+    - x: [38, 94]
+      y: 76
+      rope: [40]
+    - x: [148, 204]
+      y: 80
+      rope: [ 150 ]
+    - x: [96, 136]
+      y: 92
+    - x: [250, 306]
+      y: 94
+      rope: [258]
+    - x: [36, 92]
+      y: 96
+      rope: [90]
+    - x: [226, 244]
+      y: 96
+    - x: [136, 176]
+      y: 100
+      rope: [158]
+    - x: [182, 218]
+      y: 100
+    - x: [0, 340]
+      y: 124
 
 - name: "Top Deck Passage 6"
   region: "Arteria"
   top_level: 50
-  starting_position: [276, 36]
+  start_position: [276, 36]
   erda_position: [204, 72]
   snow_spirit_position: [120, 150]
   sphere_positions:
@@ -48,14 +148,14 @@
         - [ 240, 36 ]
         - [ 240, 132 ]
         - [ 68, 136 ]
-    - loop: false
-      positions:
-        - [ 48, 150 ]
-        - [ 90, 72 ]
-        - [ 168, 132 ]
-        - [ 334, 150 ]
-        - [ 346, 80 ]
-        - [ 240, 36 ]
+#    - loop: false
+#      positions:
+#        - [ 48, 150 ]
+#        - [ 90, 72 ]
+#        - [ 168, 132 ]
+#        - [ 334, 150 ]
+#        - [ 346, 80 ]
+#        - [ 240, 36 ]
   tp_positions_coverage: [85, 50]
   reset_position: null
   platforms:
@@ -71,7 +171,7 @@
     - x: [66, 114]
       y: 72
       rope: [98]
-    - x: [192, 224]
+    - x: [190, 224]
       y: 72
     - x: [314, 360]
       y: 80

@@ -12,7 +12,9 @@ class Map:
         self.standby_position: Union[Position, None] = None
         self.erda_position: Union[Position, None] = None
         self.sphere_positions: List[Position] = []
-        self.loot_series: List[Tuple[Position | str, Dict[str, int]]] = []
+        self.exit_positions: List[Position] = []
+        # self.loot_series: List[Tuple[Position | str, Dict[str, int]]] = []
+        self.loot_series: List[Dict[str, Position | str | Dict[str, int]]] = []
         self.tp_positions: List[TpPosition] = []
         self.reset_position: Union[Position, None] = None
         self.platforms: Dict[int, List[Dict[str, Union[List[int], int]]]] = {}
@@ -44,8 +46,8 @@ class Map:
     def set_sphere_positions(self, sphere_positions: List[Position]):
         self.sphere_positions = sphere_positions
 
-    def set_loot_series(self, loop_series: List[Position]):
-        self.loot_series = loop_series
+    def set_exit_positions(self, exit_positions: List[Position]):
+        self.exit_positions = exit_positions
 
     def set_erda_position(self, erda_position: Position):
         self.erda_position = erda_position
@@ -81,13 +83,23 @@ class Map:
             self.set_reset_position(Position(*map_obj["reset_position"]))
         if map_obj.get("sphere_positions"):
             self.set_sphere_positions([Position(*p) for p in map_obj["sphere_positions"]])
+        if map_obj.get("exit_positions"):
+            self.set_exit_positions([Position(*p) for p in map_obj["exit_positions"]])
         if map_obj.get("loot_series"):
             # print(map_obj["loot_series"])
             for loot_event in map_obj["loot_series"]:
                 if loot_event.get("position"):
-                    self.loot_series.append((Position(*loot_event["position"]), loot_event.get("params")))
+                    # self.loot_series.append((Position(*loot_event["position"]), loot_event.get("params")))
+                    self.loot_series.append({
+                        "position": Position(*loot_event["position"]),
+                        "params": loot_event.get("params") or {}
+                    })
                 if loot_event.get("action"):
-                    self.loot_series.append((loot_event["action"], loot_event.get("params")))
+                    # self.loot_series.append((loot_event["action"], loot_event.get("params")))
+                    self.loot_series.append({
+                        "action": loot_event["action"],
+                        "params": loot_event.get("params") or {}
+                    })
         if map_obj.get("tp_position_series"):
             for series in map_obj["tp_position_series"]:
                 self.set_tp_positions([Position(*p) for p in series["positions"]], series["loop"])
@@ -104,12 +116,20 @@ class Map:
     def get_platform(self, position: Position):
         for platform in self.platforms.get(position.y) or []:
             if platform["edges"][0] <= position.x <= platform["edges"][1]:
+        # platforms = []
+        # for y in range(position.y - 2, position.y + 2):
+        #     platforms.extend(self.platforms.get(y) or [])
+        # for platform in platforms:
+        #     if platform["edges"][0] <= position.x <= platform["edges"][1]:
                 return platform
 
     def get_edges_at(self, position: Position):
         platform = self.get_platform(position)
         if platform is not None:
             return platform["edges"]
+
+    def on_same_platform(self, position1: Position, position2: Position):
+        return (position1.y == position2.y) and ((self.get_edges_at(position1) or 0) == (self.get_edges_at(position2) or 0))
 
     def get_all_levels_at(self, x: int):
         levels = []
@@ -124,7 +144,9 @@ class Map:
 
     def get_tp_route_to_target(self, current_position: Position, target_position: Position, max_tp_count=2, extra_punishment=0):
         shortest_equiv_distance_to_target = self.total_distance_between(current_position, target_position)
-        # print(f"non-tp distance: {shortest_equiv_distance_to_target}")
+        # print(f"Getting TP route. Non-tp distance: {shortest_equiv_distance_to_target}")
+        if shortest_equiv_distance_to_target < self.tp_equiv_distance:
+            return target_position, 0
         inter_position = target_position
         tp_count = 0
         tolerance_x, tolerance_y = self.tp_positions_coverage
@@ -132,12 +154,17 @@ class Map:
             if not is_overlap(current_position, tp_position, tolerance_x=tolerance_x, tolerance_y=tolerance_y):
                 continue
             distance_to_tp = self.total_distance_between(current_position, tp_position)
-            # print(tp_position.as_position())
+            if is_overlap(current_position, tp_position, 1, 4):
+                extra_punishment = 0
+            if shortest_equiv_distance_to_target < distance_to_tp + self.tp_equiv_distance + extra_punishment:
+                continue
+            # print(tp_position)
             for count in range(1, max_tp_count + 1):
                 distance_from_tp_to_target = self.total_distance_between(tp_position.next(count), target_position)
                 equiv_distance_to_target = distance_to_tp + distance_from_tp_to_target + self.tp_equiv_distance * count + extra_punishment
-                # print(f"distance: {distance_from_tp_to_target}, punishment: {extra_punishment}, tp_count: {count}, equiv_distance: {equiv_distance_to_target}")
+                # print(f"distance_to_tp: {distance_to_tp}, distance_from_tp: {distance_from_tp_to_target}, punishment: {extra_punishment}, tp_count: {count}, equiv_distance: {equiv_distance_to_target}")
                 if equiv_distance_to_target < shortest_equiv_distance_to_target:
+                    shortest_equiv_distance_to_target = equiv_distance_to_target
                     inter_position = tp_position.as_position()
                     tp_count = count
         # print(inter_position, tp_count)
@@ -158,7 +185,7 @@ class TpPosition:
         self._next: TpPosition = next_position
 
     def __str__(self):
-        return f"x={self.x} y={self.y} next=({self._next.x}, {self._next.y})"
+        return f"Position: ({self.x}, {self.y}); next Position: ({self._next.x}, {self._next.y})"
 
     def next(self, count=1):
         if count > 1:
@@ -192,4 +219,7 @@ def read_map_yaml():
 if __name__ == '__main__':
     map = Map("Top Deck Passage 6")
     # print(map.loot_series)
-    print(map.tp_positions[0] == map.tp_positions[0].next().next().next())
+    # print(map.tp_positions[0] == map.tp_positions[0].next().next().next())
+    rune_pos = get_current_position_of("rune", map.minimap_region)
+    print(rune_pos)
+    print(map.get_platform(rune_pos))

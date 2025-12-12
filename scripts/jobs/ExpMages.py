@@ -11,6 +11,14 @@ class ExpMages(MapleJob):
         self.blink_vertical_distance = 38
         self.distance_between_blinks = 14
         self.time_between_blinks = 0.66
+        self.infinity_region = get_skill_region("infinity")
+        self.infinity2_region = get_skill_region("infinity2")
+
+    def displacement_is_multiple_of_blinks(self, displacement, max_blinks, tolerance_left=2, tolerance_right=2):
+        for n_blinks in range(1, max_blinks + 1):
+            if displacement - tolerance_left <= self.blink_horizontal_distance * n_blinks <= displacement + tolerance_right or \
+                    displacement - tolerance_left <= -self.blink_horizontal_distance * n_blinks <= displacement + tolerance_right:
+                return n_blinks
 
     def move_horizontal_by(self, displacement, jump_blink=False, attack_blink=True, tolerance_left=2, tolerance_right=2, execute=True):
         arrow_key_code = KEY_LEFT_ARROW if displacement < 0 else KEY_RIGHT_ARROW
@@ -83,7 +91,57 @@ class ExpMages(MapleJob):
         else:
             return seq
 
-    def go_to_y(self, current_position, position, need_jump_combo=True, tolerance=2, max_timeout=6):
+    def go_to_x(self, current_position, position, attempt_jump_blink=True, tolerance=2, tolerance_left=None, tolerance_right=None, tp_count_at_position=0, max_timeout=15):
+        t0 = time.perf_counter()
+        if tp_count_at_position > 0 and is_overlap_x(current_position, position, 1):
+            seq = short_press(KEY_UP_ARROW, 10, execute=False)
+            if tp_count_at_position > 1:
+                for _ in range(tp_count_at_position - 1):
+                    seq.extend(short_press(KEY_UP_ARROW, 10, execute=False))
+            exec_key_sequence(seq)
+            return get_current_position_of("player", self.map.minimap_region)
+        tolerance_left = tolerance_left or tolerance
+        tolerance_right = tolerance_right or tolerance
+        n_blinks = self.displacement_is_multiple_of_blinks(position.x - current_position.x, 2, tolerance_left, tolerance_right)
+        if n_blinks is None and not self.map.on_same_platform(current_position, position) and \
+                not is_overlap_x(current_position, position, self.blink_horizontal_distance) and \
+                is_overlap(current_position, position, self.blink_horizontal_distance * 3 + tolerance, 8):
+            target_platform_edges = self.map.get_edges_at(position)
+            if target_platform_edges is not None:
+                for n in [1, -1, 2, -2]:
+                    inter_x = current_position.x + n * self.blink_horizontal_distance
+                    if target_platform_edges[0] <= inter_x <= target_platform_edges[1]:
+                        current_position = self.go_to_x(current_position, Position(inter_x, position.y), attempt_jump_blink, tolerance=10)
+                        break
+        while not is_overlap_x(current_position, position, tolerance, tolerance_left, tolerance_right) and time.perf_counter() - t0 < max_timeout:
+            initial_x = current_position.x
+            displacement = position.x - current_position.x
+            jump_blink = attempt_jump_blink & (10 <= current_position.y - position.y <= 24)
+            attack_blink = (-8 <= current_position.y - position.y <= 8)
+            # if jump_blink:
+            #     print(f"attempting jump blink, current y: {current_position.y}, target y: {position.y}")
+            # self.move_horizontal_by(arrow_key_code, distance, jump_blink)
+            self.move_horizontal_by(displacement, jump_blink, attack_blink, tolerance_left=tolerance_left or tolerance, tolerance_right=tolerance_right or tolerance)
+            precise_delay(0.3, 0.02)
+            current_position = get_current_position_of("player", self.map.minimap_region)
+            if position.x < initial_x <= current_position.x:
+                exec_key_sequence(get_keyUp_seq(KEY_RIGHT_ARROW))
+            elif position.x > initial_x >= current_position.x:
+                exec_key_sequence(get_keyUp_seq(KEY_LEFT_ARROW))
+            # print(current_position, position, tp_count_at_position)
+            if tp_count_at_position > 0 and is_overlap(current_position, position, 2, 4):
+                short_press(KEY_UP_ARROW, 5)
+                current_position = get_current_position_of("player", self.map.minimap_region)
+                if not is_overlap(current_position, position, 4, 4):
+                    if tp_count_at_position > 1:
+                        short_delay(5)
+                        for _ in range(tp_count_at_position - 1):
+                            short_press(KEY_UP_ARROW, 10)
+                        current_position = get_current_position_of("player", self.map.minimap_region)
+                    break
+        return current_position
+
+    def go_to_y(self, current_position, position, need_jump_combo=False, tolerance=2, max_timeout=6):
         t0 = time.perf_counter()
         levels = self.map.get_all_levels_at(current_position.x)  # assume sorted ascending
         while not is_overlap_y(current_position, position, tolerance) and time.perf_counter() - t0 < max_timeout:
@@ -113,50 +171,9 @@ class ExpMages(MapleJob):
             current_position = get_current_position_of("player", self.map.minimap_region)
         return current_position
 
-    def go_to_x(self, current_position, position, attempt_jump_blink=True, tolerance=2, tolerance_left=None, tolerance_right=None, tp_count_at_position=0, max_timeout=15):
-        t0 = time.perf_counter()
-        if tp_count_at_position > 0 and is_overlap_x(current_position, position, 1):
-            seq = short_press(KEY_UP_ARROW, 10, execute=False)
-            # exec_key_sequence([short_press(KEY_UP_ARROW, 10, execute=False)[0] for _ in range(tp_count_at_position)])
-            if tp_count_at_position > 1:
-                for _ in range(tp_count_at_position - 1):
-                    seq.extend(short_press(KEY_UP_ARROW, 10, execute=False))
-            exec_key_sequence(seq)
-            return get_current_position_of("player", self.map.minimap_region)
-        while not is_overlap_x(current_position, position, tolerance, tolerance_left, tolerance_right) and time.perf_counter() - t0 < max_timeout:
-            initial_x = current_position.x
-            # arrow_key_code = KEY_LEFT_ARROW if initial_x > position.x else KEY_RIGHT_ARROW
-            # distance = abs(position.x - current_position.x)
-            displacement = position.x - current_position.x
-            jump_blink = attempt_jump_blink & (8 <= current_position.y - position.y <= 24)
-            attack_blink = (-8 <= current_position.y - position.y <= 8)
-            # if jump_blink:
-            #     print(f"attempting jump blink, current y: {current_position.y}, target y: {position.y}")
-            # self.move_horizontal_by(arrow_key_code, distance, jump_blink)
-            self.move_horizontal_by(displacement, jump_blink, attack_blink, tolerance_left=tolerance_left or tolerance, tolerance_right=tolerance_right or tolerance)
-            precise_delay(0.3, 0.02)
-            current_position = get_current_position_of("player", self.map.minimap_region)
-            if position.x < initial_x <= current_position.x:
-                exec_key_sequence(get_keyUp_seq(KEY_RIGHT_ARROW))
-            elif position.x > initial_x >= current_position.x:
-                exec_key_sequence(get_keyUp_seq(KEY_LEFT_ARROW))
-            # print(current_position, position, tp_count_at_position)
-            if tp_count_at_position > 0 and is_overlap(current_position, position, 2, 4):
-                short_press(KEY_UP_ARROW, 5)
-                current_position = get_current_position_of("player", self.map.minimap_region)
-                if not is_overlap(current_position, position, 2, 4):
-                    if tp_count_at_position > 1:
-                        short_delay(5)
-                        for _ in range(tp_count_at_position - 1):
-                            short_press(KEY_UP_ARROW, 10)
-                        current_position = get_current_position_of("player", self.map.minimap_region)
-                    break
-        return current_position
-
     def go_to(self,
               position,
-              # need_jump_down=False,
-              need_jump_combo=True,
+              need_jump_combo=False,
               attempt_jump_blink=True,
               tolerance_x=2,
               tolerance_y=2,
@@ -176,22 +193,158 @@ class ExpMages(MapleJob):
             inter_position, tp_count = self.map.get_tp_route_to_target(current_position, position, max_tp_count=2, extra_punishment=extra_punishment)
             if inter_position != position:
                 current_position = self.go_to(inter_position, tolerance_x=1, tolerance_y=4, teleport_to_position=False, tp_count_at_position=tp_count)
-                # exec_key_sequence([short_press(KEY_UP_ARROW, 10, execute=False)[0] for _ in range(tp_count)])
-                # current_position = get_current_position_of("player", self.map.minimap_region)
         current_position = self.go_to_x(current_position, position, attempt_jump_blink, tolerance=max(2, tolerance_x), tolerance_left=tolerance_left, tolerance_right=tolerance_right)
+        if not need_jump_combo:
+            for tp_position in self.map.tp_positions:
+                if is_overlap(current_position, tp_position.as_position(), 2, 4):
+                    need_jump_combo = True
+                    break
+            if not need_jump_combo:
+                for exit_position in self.map.exit_positions:
+                    if is_overlap(current_position, exit_position, 4, 4):
+                        need_jump_combo = True
+                        break
         current_position = self.go_to_y(current_position, position, need_jump_combo, tolerance=tolerance_y)
         current_position = self.go_to_x(current_position, position, attempt_jump_blink, tolerance_x, tolerance_left, tolerance_right, tp_count_at_position, max_timeout=5)
         short_delay(delay_after_rep)
-        # return is_overlap(current_position, position, tolerance_x, tolerance_y)
         return current_position
+
+    def buff_infinity(self):
+        inf_cd = check_time_to_up("infinity", self.infinity_region, 180)
+        inf2_cd = check_time_to_up("infinity", self.infinity2_region, 340)
+        if inf_cd == 0 and inf2_cd == 0:
+            short_press(KEY_BUFF2)
+        else:
+            short_press(KEY_BUFF)
+        short_delay(3)
+        return np.max([np.min([10, inf_cd, inf2_cd]), 0])
+
+    def attack2(self, execute=True):
+        return short_press(KEY_ATT2, 4, execute=execute)
+
+    def attack3(self, execute=True):
+        return short_press(KEY_ATT3, 8, execute=execute)
+
+    def periodically_attack(self, duration, recast_after=0, stop_at=None, max_gap=10):
+        t0 = t1 = time.perf_counter()
+        # t1 = time.perf_counter()
+        if stop_at is None:
+            stop_at = t0 + duration
+        # if recast_after > 0:
+        #     recast_at = t1 + recast_after
+        # else:
+        #     recast_at = None
+        if self.cor:
+            self.attack3()
+        else:
+            self.attack1()
+        while time.perf_counter() < stop_at:
+            if 0 < recast_after < time.perf_counter() - t0:
+            # if recast_at is not None and recast_at < time.perf_counter():
+                inf_cd_remain = self.buff_infinity()
+                recast_after = 0 if inf_cd_remain > recast_after else inf_cd_remain
+                # recast_at = time.perf_counter() if inf_cd_remain > recast_after else time.perf_counter() + inf_cd_remain
+            if np.random.random() < ((time.perf_counter() - t1) / max_gap) ** 2:
+                t1 = time.perf_counter()
+                seq = random_action(*self.attacks)(execute=False)
+                for special_attack in self.special_attacks:
+                    seq.extend(action_with_prob(special_attack, 0.01)(execute=False))
+                exec_key_sequence(seq)
+            else:
+                short_delay(10)
+        if self.cor:
+            short_press(KEY_COR, 5)
+        else:
+            short_delay(5)
+        return time.perf_counter() - t0
+
+    def loop(self, rune_cd, dcbot):
+        log("start!")
+        minimap_region = self.map.minimap_region
+        max_duration = rune_cd + 240
+        t0 = time.perf_counter()
+        rune_ref = time.perf_counter() - rune_cd
+        recast_ref = time.perf_counter()
+        short_press(KEY_COR, 5)
+        guild_buff_ref = time.process_time() - 1800
+        while time.perf_counter() - t0 < max_duration:
+            rune_position = get_current_position_of("rune", minimap_region)
+            log("setting up...")
+            t1 = time.perf_counter()
+
+            self.setup_placement()
+            log("setup down...")
+            short_delay()
+            log("buffing...")
+            recast_after = self.buff_infinity()
+            if recast_after > 0:
+                log(f"recasting infinity after {recast_after} seconds...")
+                recast_ref = time.perf_counter()
+            time_left = max_duration - time.perf_counter() + t0
+            log(f"{time_left:.2f} seconds left.")
+            if time_left < 60:
+                subprocess.run(['say', 'less than one minutes left!'])
+            if time.perf_counter() - rune_ref > rune_cd:
+                if self.unlock_rune(rune_position, dcbot):
+                    rune_ref = t0 = time.perf_counter()
+            if 0 < recast_after < time.perf_counter() - recast_ref:
+                inf_cd_remain = self.buff_infinity()
+                recast_after = 0 if inf_cd_remain > recast_after else inf_cd_remain
+
+            self.go_to_standby_position()
+            if 0 < recast_after < time.perf_counter() - recast_ref:
+                inf_cd_remain = self.buff_infinity()
+                recast_after = 0 if inf_cd_remain > recast_after else inf_cd_remain
+            if np.random.random() < (
+                    (time.perf_counter() - guild_buff_ref) / 1500) ** 2:
+                if self.buff_guild():
+                    guild_buff_ref = time.perf_counter()
+            seq = short_press(PRL['H'], 10, execute=False)
+            seq.extend(multi_press(PRL['Y'], 3, execute=False))
+            exec_key_sequence(seq)
+            short_press(KEY_COR, 5)
+
+            self.back_to_start_position()
+            # self.periodically_attack(58 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1, recast_after)
+            self.periodically_attack(0, recast_after, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr))
+            t1 = time.perf_counter()
+
+            self.minor_setup()
+            short_delay(3)
+
+            self.periodically_attack(22 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1)
+            short_delay(3)
+            log("starting loot...")
+
+            self.loot()
+            log("loot done. staying until setup...")
+            self.back_to_start_position()
+
+            # self.periodically_attack(56 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1)
+            self.periodically_attack(0, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr))
 
 
 class IL(ExpMages):
     def __init__(self, map_name):
         super().__init__(map_name)
         self.blink_horizontal_distance = 36
-        self.blink_vertical_distance = 48
+        self.blink_vertical_distance = 50
         self.map.set_tp_equiv_distance(int(self.speed * self.time_between_blinks // 2) * 2 + self.blink_horizontal_distance)
+        self.attacks = [self.attack1, self.attack2, self.attack3]
+        self.special_attacks = [self.special_attack_1, self.special_attack_2]
+
+    def special_attack_1(self, execute=True):
+        seq = short_press(KEY_A, 1, execute=False)
+        seq.extend(short_press(KEY_A, execute=False))
+        if execute:
+            exec_key_sequence(seq)
+        else:
+            return seq
+
+    def special_attack_2(self, execute=True):
+        return short_press(KEY_S, 1, execute=execute)
+
+
 
 
 class Bishop(ExpMages):

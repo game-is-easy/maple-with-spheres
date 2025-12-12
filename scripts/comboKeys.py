@@ -31,6 +31,7 @@ if mode == "prl":
     KEY_DOWN_ARROW = PRL["DOWN"]
     KEY_ECHO = PRL["F6"]
     KEY_ESC = PRL["ESCAPE"]
+    KEY_COR = PRL['D']
 
     def exec_key_sequence(seq):
         keySequence(seq)
@@ -55,6 +56,7 @@ else:
     KEY_GUILD_DMG = key_codes['9']
     KEY_GUILD_CRITDMG = key_codes['0']
     KEY_ECHO = key_codes['f6']
+    KEY_COR = KEY_D
 
     def exec_key_sequence(seq):
         for e in seq:
@@ -329,6 +331,15 @@ def short_press(key_code, delay_after_rep=0, execute=True):
         seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.06, 0.15), delay_after)
     else:
         seq = get_keyPress_seq(key_code, random_norm(0.1, 0.02, 0.06, 0.15))
+    if execute:
+        exec_key_sequence(seq)
+    else:
+        return seq
+
+
+def hold(key_code, duration, delay_after_rep=0, execute=True):
+    delay_after = get_short_delay(delay_after_rep) if delay_after_rep > 0 else 0
+    seq = get_keyPress_seq(key_code, random_norm(duration, duration * 0.1, 0.001), delay_after)
     if execute:
         exec_key_sequence(seq)
     else:
