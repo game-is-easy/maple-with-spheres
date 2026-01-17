@@ -31,6 +31,7 @@ if mode == "prl":
     KEY_DOWN_ARROW = PRL["DOWN"]
     KEY_ECHO = PRL["F6"]
     KEY_ESC = PRL["ESCAPE"]
+    KEY_TOWN = PRL["J"]
     KEY_COR = PRL['D']
 
     def exec_key_sequence(seq):

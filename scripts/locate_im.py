@@ -4,6 +4,7 @@ import collections
 import subprocess
 import Quartz
 from Quartz import CGMainDisplayID, CGDisplayCreateImageForRect, CGRectMake
+from scripts.src.appscreenshot import get_screenshot_provider
 import os
 import datetime
 
@@ -11,6 +12,7 @@ Box = collections.namedtuple('Box', 'left top width height')
 RGB = collections.namedtuple('RGB', 'red green blue')
 Position = collections.namedtuple('Position', 'x y')
 # Point = collections.namedtuple('Point', 'x y')
+# screenshot_provider = get_screenshot_provider()
 
 
 def screenshot(image_name=None, region=None):
@@ -62,12 +64,16 @@ def screencapture(image_name=None, region=None, retina_region=True, png_compress
     bgra = buf.reshape((h, rowbytes))[:, :w * 4].reshape((h, w, 4))
     bgr = cv2.cvtColor(bgra, cv2.COLOR_BGRA2BGR)
     cv2.imwrite(tmp_filename, bgr, [cv2.IMWRITE_PNG_COMPRESSION, png_compression])
-        # subprocess.run(['screencapture', '-x', "-R", f"{region[0]//2},{region[1]//2},{region[2]//2+1},{region[3]//2+1}", tmp_filename])
-        # im = cv2.imread(tmp_filename)
-        # im = im[region[1] % 2:region[1] % 2 + region[3], region[0] % 2:region[0] % 2 + region[2], :]
 
     if image_name is None:
         os.unlink(tmp_filename)
+    return bgr
+
+
+def screengrab(image_name=None, region=None, png_compression=1):
+    bgr = screenshot_provider.grab(region)
+    if image_name is not None:
+        cv2.imwrite(image_name, bgr, [cv2.IMWRITE_PNG_COMPRESSION, png_compression])
     return bgr
 
 
@@ -82,11 +88,13 @@ def locate_all(needle_image, haystack_image, limit=10000, confidence=0.999, show
             raise FileNotFoundError("can't open/read file: check file path/integrity")
 
     needle_height, needle_width = needle_image.shape[:2]
-    from PIL import Image
     if show:
+        from PIL import Image
         Image._show(Image.fromarray(needle_image[:,:,-1]))
         Image._show(Image.fromarray(haystack_image[:,:,-1]))
 
+    print(haystack_image.shape)
+    print(needle_image.shape)
     if (haystack_image.shape[0] < needle_image.shape[0] or haystack_image.shape[1] < needle_image.shape[1]):
         # avoid semi-cryptic OpenCV error below if bad size
         raise ValueError('needle dimension(s) exceed the haystack image or region dimensions')
@@ -183,3 +191,4 @@ if __name__ == '__main__':
     # screencapture("test002.png", (100, 100, 500, 300))
     screenshot("screenshot_test.png")
     screencapture("screencapture_test.png")
+    screengrab("screengrab_text.png")

@@ -1,7 +1,7 @@
 from gameUI import *
 from comboKeys import *
-from jobs.ExpMages import IL
-from maps.top_deck_6 import back_to_start_position, minor_setup, setup_placement, loot
+# from jobs.ExpMages import IL
+# from maps.top_deck_6 import back_to_start_position, minor_setup, setup_placement, loot
 from discord_bot import start_bot, send_text_message, send_dm_and_wait_for_response
 from scripts.arrow_detection.process_arrow_image import *
 
@@ -246,26 +246,36 @@ def loop(minor_setup_fn, setup_fn, loot_fn, back_fn, go_to_fn, rune_cd, characte
         periodically_attack(59 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1)
 
 
+def hold_while_inactive(key_name):
+    key_code = PRL[key_name]
+    holding = False
+    while True:
+        if holding and get_active_application() == "Parallels Desktop":
+            holding = False
+            keyUp(key_code)
+        elif not holding and get_active_application() != "Parallels Desktop":
+            holding = True
+            keyDown(key_code)
+        time.sleep(0.5)
+
+
 if __name__ == '__main__':
-    start_bot()
-    if not os.path.exists(os.path.join(DIR, "training")):
-        os.mkdir(os.path.join(DIR, "training"))
-    activate_window()
-    # time.sleep(0.3)
+    # start_bot()
+    # if not os.path.exists(os.path.join(DIR, "training")):
+    #     os.mkdir(os.path.join(DIR, "training"))
+    # activate_window()
+    #
+    # character = IL("Top Deck Passage 6")
+    #
+    # def go_to_fn(position, need_jump_combo=False, attempt_jump_blink=True, tolerance_x=2, tolerance_y=2, tolerance_left=None, tolerance_right=None, teleport_to_position=False):
+    #     return character.go_to(position, need_jump_combo, attempt_jump_blink, tolerance_x, tolerance_y, tolerance_left, tolerance_right, teleport_to_position=teleport_to_position)
+    #
+    # minor_setup_fn = minor_setup
+    # setup_fn = setup_placement
+    # loot_fn = loot
+    # back_fn = back_to_start_position
+    #
+    # rune_cd = 900
+    # loop(minor_setup_fn, setup_fn, loot_fn, back_fn, go_to_fn, rune_cd, character)
 
-    # attempt_jump_blink = True
-    character = IL("Top Deck Passage 6")
-
-    def go_to_fn(position, need_jump_combo=False, attempt_jump_blink=True, tolerance_x=2, tolerance_y=2, tolerance_left=None, tolerance_right=None, teleport_to_position=False):
-        return character.go_to(position, need_jump_combo, attempt_jump_blink, tolerance_x, tolerance_y, tolerance_left, tolerance_right, teleport_to_position=teleport_to_position)
-
-    minor_setup_fn = minor_setup
-    setup_fn = setup_placement
-    loot_fn = loot
-    back_fn = back_to_start_position
-
-    rune_cd = 900
-    loop(minor_setup_fn, setup_fn, loot_fn, back_fn, go_to_fn, rune_cd, character)
-    # loop(minor_setup_spring4, setup_placement_spring4, loot_spring4, back_to_start_position_spring4, alt_buff=KEY_BUFF2)
-    #o
-
+    hold_while_inactive("SPACE")

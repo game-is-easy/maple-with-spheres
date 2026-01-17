@@ -4,7 +4,8 @@ import random
 PRLCTL = shutil.which("prlctl") or "/usr/local/bin/prlctl"
 VM = "Windows 11"
 
-# Parallels key codes (US layout). Full table: docs link in README.
+# Parallels key codes (US layout). Full table:
+# https://docs.parallels.com/parallels-desktop-developers-guide/command-line-interface-utility/manage-virtual-machines-from-cli/general-virtual-machine-management/send-a-keyboard-event-to-a-virtual-machine/list-of-parallels-keyboard-key-codes
 PRL = {
     # letters
     **{c: v for c, v in zip("QWERTYUIOP", [24,25,26,27,28,29,30,31,32,33])},
@@ -12,13 +13,14 @@ PRL = {
     **{c: v for c, v in zip("ZXCVBNM",   [52,53,54,55,56,57,58])},
     # digits row
     **{c: v for c, v in zip("1234567890", [10,11,12,13,14,15,16,17,18,19])},
-    " ": 65, "ENTER": 36, "TAB": 23, "BACKSPACE": 22, "ESCAPE": 9,
+    # function keys row
+    **{f"F{c}": v for c,v in zip(range(1,11), range(67, 77))}, "F11": 95, "F12": 96,
+    " ": 65, "ENTER": 36, "TAB": 23, "BACKSPACE": 22, "ESCAPE": 9, "ESC": 9,
     "-": 20, "=": 21, "[": 34, "]": 35, "\\": 51, ";": 47, "'": 48, "`": 49,
     ",": 59, ".": 60, "/": 61,
-    "LEFT_SHIFT": 50, "RIGHT_SHIFT": 62,
-    "LEFT_CTRL": 37, "LEFT_ALT": 64, "LEFT_WIN": 115, "SPACE": 65,
+    "LEFT_SHIFT": 50, "RIGHT_SHIFT": 62, "SHIFT": 50,
+    "LEFT_CTRL": 37, "CTRL": 37, "LEFT_ALT": 64, "ALT": 64, "LEFT_WIN": 115, "SPACE": 65,
     "UP": 98, "LEFT": 100, "RIGHT": 102, "DOWN": 104,
-    "F6": 72
 }
 
 WASD_TO_ARROW = {'w': PRL["UP"], 's': PRL["DOWN"], 'a': PRL["LEFT"], 'd': PRL["RIGHT"]}

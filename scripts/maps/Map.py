@@ -22,6 +22,7 @@ class Map:
         self.initiate_map()
         self.tp_equiv_distance = 0
         self.tp_positions_coverage = [100, 50]  # x-range, y-range
+        self.rune_position = None
 
     def set_tp_equiv_distance(self, tp_equiv_distance):
         self.tp_equiv_distance = tp_equiv_distance
@@ -175,6 +176,13 @@ class Map:
 
     def target_level_horizontal_move(self, from_position, to_position):
         return
+
+    def find_rune_on_map(self):
+        rune_symbol_position = get_current_position_of("rune", self.minimap_region, attempts=1)
+        if rune_symbol_position is not None:
+            self.rune_position = Position(rune_symbol_position.x, rune_symbol_position.y + 1)
+        else:
+            self.rune_position = None
 
 
 class TpPosition:

@@ -23,7 +23,11 @@ class MapleJob:
         self.special_attacks = []
         self.mercedes_cdr = 0.05
         self.cor = False  # chains of resentment
+        self.using_booster = False
+        self.always_using_booster = False
+        self.booster_use_timestamp = 0
         self.erda_cast_timestamp = 0
+        self.rune_unlock_timestamp = 0
         self.next_task_start_at = 0
 
     def attack1(self, execute=True):
@@ -133,24 +137,26 @@ class MapleJob:
                 short_press(key_code, **loot_event.get("params"))
         if self.cor:
             short_press(KEY_COR, 5)
-        self.go_to_standby_position()
+        # self.go_to_standby_position()
         # self.back_to_start_position()
 
-    def unlock_rune(self, rune_position=None, dcbot=None, attempts=2):
+    # def unlock_rune(self, rune_position=None, dcbot=None, attempts=2):
+    def unlock_rune(self, dcbot=None, attempts=2, active_app=None):
         if attempts == 0:
             return False
         first_attempt = (attempts == 2)
-        if rune_position is None:
-            rune_position = get_current_position_of("rune", self.map.minimap_region)
-        if rune_position:
+        if self.map.rune_position is None:
+            # rune_position = get_current_position_of("rune", self.map.minimap_region)
+            self.map.find_rune_on_map()
+        if self.map.rune_position is not None:
             dcbot.send_message(f"[{datetime.now().strftime('%H:%M:%S')}] Rune spwaned. Be ready.")
             subprocess.run(['say', 'Rune spawned.'])
             if first_attempt:
                 self.attack1()
-                rune_platform_edges = self.map.get_edges_at(rune_position)
-                tolerance_left = int(np.min([rune_position.x - rune_platform_edges[0], 4])) if rune_platform_edges else 4
-                tolerance_right = int(np.min([rune_platform_edges[1] - rune_position.x, 4])) if rune_platform_edges else 4
-                self.go_to(rune_position, tolerance_y=4, tolerance_left=tolerance_left, tolerance_right=tolerance_right, teleport_to_position=True)
+                rune_platform_edges = self.map.get_edges_at(self.map.rune_position)
+                tolerance_left = int(np.min([self.map.rune_position.x - rune_platform_edges[0], 4])) if rune_platform_edges else 4
+                tolerance_right = int(np.min([rune_platform_edges[1] - self.map.rune_position.x, 4])) if rune_platform_edges else 4
+                self.go_to(self.map.rune_position, tolerance_y=4, tolerance_left=tolerance_left, tolerance_right=tolerance_right, teleport_to_position=True)
             self.attack1()
             delay(0.6, 0.06, 0.45, 0.75)
             file_name = datetime.now().strftime('%m%d%H%M')
@@ -159,7 +165,8 @@ class MapleJob:
             for _ in range(3):
                 screencapture(region=(100, 100, 2, 2))
             n_image = 1
-            active_app = get_active_application()
+            if active_app is None:
+                active_app = get_active_application()
             time.sleep(0.1)
             activate_window()
             time.sleep(0.1)
@@ -188,7 +195,7 @@ class MapleJob:
                     labels = result['arrow_data']
                 elif result['discord_reply'].strip().lower() == 'b':
                     log("retry interacting with rune...")
-                    return self.unlock_rune(rune_position, dcbot, attempts)
+                    return self.unlock_rune(dcbot, attempts, active_app=active_app)
                 elif len(result['discord_reply'].strip().replace(' ', '')) >= 4:
                     labels = result['discord_reply'].strip().replace(' ', '')[-4:].lower()
                     print(labels)
@@ -199,10 +206,13 @@ class MapleJob:
                             random_delay_rep = 1 if np.random.random() < 0.7 else 3
                             seq.extend(short_press(arrow_key, random_delay_rep, execute=False))
                         else:
-                            return self.unlock_rune(rune_position, dcbot, attempts - 1)
+                            # return self.unlock_rune(rune_position, dcbot, attempts - 1)
+                            return self.unlock_rune(dcbot, attempts - 1, active_app=active_app)
                     # seq.extend(random_action(self.attack1, self.attack2)(execute=False))
                     seq.extend(self.attack1(execute=False))
                     exec_key_sequence(seq)
+                    # TODO: check if rune unlock is successful
+                    self.rune_unlock_timestamp = time.perf_counter()
                 if active_app is not None:
                     subprocess.run(["osascript", "-e",
                                     'tell application "System Events" to set visible of process "Discord" to False'])
@@ -217,6 +227,26 @@ class MapleJob:
                 with open(os.path.join(DIR, f"training/labels.json"),
                           'w') as f:
                     json.dump(data, f)
+                self.map.rune_position = None
                 return True
             # random_action(attack1, attack2, attack3)()
             subprocess.run(['say', 'Rune is still there!'])
+
+    def check_stop_event_and_simultaneous_events(self, stop_event):
+        if stop_event is not None and stop_event.is_set():
+            return True
+        if self.using_booster:
+            booster_use_until = np.inf if self.always_using_booster else self.rune_unlock_timestamp + 250
+            if self.booster_use_timestamp + 108 < time.perf_counter() < booster_use_until:
+                log("Using booster...")
+                # seq = short_press(PRL['H'], 10, execute=False)
+                seq = multi_press(PRL['H'], 3, 10, execute=False)
+                seq.extend(multi_press(PRL['Y'], 3, execute=False))
+                exec_key_sequence(seq)
+                self.booster_use_timestamp = time.perf_counter()
+        if self.cor:
+            short_delay(3)
+            short_press(KEY_COR, 6)
+        return False
+
+

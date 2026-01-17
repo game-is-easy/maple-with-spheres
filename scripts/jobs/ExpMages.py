@@ -1,3 +1,5 @@
+import time
+
 from scripts.jobs.MapleJob import MapleJob
 from scripts.comboKeys import *
 from scripts.gameUI import *
@@ -11,8 +13,18 @@ class ExpMages(MapleJob):
         self.blink_vertical_distance = 38
         self.distance_between_blinks = 14
         self.time_between_blinks = 0.66
+        self.attack2_cd = 0
+        self.attack2_cast_ref = 0
         self.infinity_region = get_skill_region("infinity")
         self.infinity2_region = get_skill_region("infinity2")
+
+    def attack_blink(self, arrow_key_code, delay_after_rep=0, execute=True):
+        if time.perf_counter() > self.attack2_cast_ref + self.attack2_cd:
+            attack_key_code = KEY_ATT2
+            self.attack2_cast_ref = time.perf_counter()
+        else:
+            attack_key_code = KEY_ATT
+        return blink_with_key(attack_key_code, arrow_key_code, delay_after_rep, execute)
 
     def displacement_is_multiple_of_blinks(self, displacement, max_blinks, tolerance_left=2, tolerance_right=2):
         for n_blinks in range(1, max_blinks + 1):
@@ -27,11 +39,14 @@ class ExpMages(MapleJob):
         if not jump_blink and attack_blink:
             if displacement - tolerance_left <= self.blink_horizontal_distance <= displacement + tolerance_right or \
                     displacement - tolerance_left <= -self.blink_horizontal_distance <= displacement + tolerance_right:
-                return blink_with_key(KEY_ATT, arrow_key_code, execute=execute)
+                # return blink_with_key(KEY_ATT, arrow_key_code, execute=execute)
+                return self.attack_blink(arrow_key_code, execute=execute)
             elif displacement - tolerance_left <= self.blink_horizontal_distance * 2 <= displacement + tolerance_right or \
                     displacement - tolerance_left <= -self.blink_horizontal_distance * 2 <= displacement + tolerance_right:
-                seq = blink_with_key(KEY_ATT, arrow_key_code, delay_after_rep=8, execute=False)
-                seq.extend(blink_with_key(KEY_ATT, arrow_key_code, execute=False))
+                # seq = blink_with_key(KEY_ATT, arrow_key_code, delay_after_rep=8, execute=False)
+                # seq.extend(blink_with_key(KEY_ATT, arrow_key_code, execute=False))
+                seq = self.attack_blink(arrow_key_code, delay_after_rep=8, execute=False)
+                seq.extend(self.attack_blink(arrow_key_code, execute=False))
                 if execute:
                     return exec_key_sequence(seq)
                 else:
@@ -220,12 +235,13 @@ class ExpMages(MapleJob):
         return np.max([np.min([10, inf_cd, inf2_cd]), 0])
 
     def attack2(self, execute=True):
+        self.attack2_cast_ref = time.perf_counter()
         return short_press(KEY_ATT2, 4, execute=execute)
 
     def attack3(self, execute=True):
         return short_press(KEY_ATT3, 8, execute=execute)
 
-    def periodically_attack(self, duration, recast_after=0, stop_at=None, max_gap=10):
+    def periodically_attack(self, duration, recast_after=0, stop_at=None, max_gap=10, stop_event=None):
         t0 = t1 = time.perf_counter()
         # t1 = time.perf_counter()
         if stop_at is None:
@@ -238,7 +254,8 @@ class ExpMages(MapleJob):
             self.attack3()
         else:
             self.attack1()
-        while time.perf_counter() < stop_at:
+        # while time.perf_counter() < stop_at and (stop_event is None or not stop_event.is_set()):
+        while time.perf_counter() < stop_at and not self.check_stop_event_and_simultaneous_events(stop_event):
             if 0 < recast_after < time.perf_counter() - t0:
             # if recast_at is not None and recast_at < time.perf_counter():
                 inf_cd_remain = self.buff_infinity()
@@ -258,23 +275,27 @@ class ExpMages(MapleJob):
             short_delay(5)
         return time.perf_counter() - t0
 
-    def loop(self, rune_cd, dcbot):
+    def loop(self, rune_cd, dcbot, stop_event=None):
         log("start!")
-        minimap_region = self.map.minimap_region
+        # minimap_region = self.map.minimap_region
         max_duration = rune_cd + 240
         t0 = time.perf_counter()
         rune_ref = time.perf_counter() - rune_cd
         recast_ref = time.perf_counter()
-        short_press(KEY_COR, 5)
+        # if self.cor:
+        #     short_press(KEY_COR, 5)
         guild_buff_ref = time.process_time() - 1800
-        while time.perf_counter() - t0 < max_duration:
-            rune_position = get_current_position_of("rune", minimap_region)
+        # while time.perf_counter() - t0 < max_duration and (stop_event is None or not stop_event.is_set()):
+        while time.perf_counter() - t0 < max_duration and not self.check_stop_event_and_simultaneous_events(stop_event):
+            if time.perf_counter() - rune_ref > rune_cd:
+                self.map.find_rune_on_map()
             log("setting up...")
             t1 = time.perf_counter()
 
             self.setup_placement()
             log("setup down...")
-            short_delay()
+            short_delay(3)
+
             log("buffing...")
             recast_after = self.buff_infinity()
             if recast_after > 0:
@@ -284,44 +305,74 @@ class ExpMages(MapleJob):
             log(f"{time_left:.2f} seconds left.")
             if time_left < 60:
                 subprocess.run(['say', 'less than one minutes left!'])
+
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
+            # if stop_event is not None and stop_event.is_set():
+            #     break
+
             if time.perf_counter() - rune_ref > rune_cd:
-                if self.unlock_rune(rune_position, dcbot):
+                if self.unlock_rune(dcbot):
                     rune_ref = t0 = time.perf_counter()
             if 0 < recast_after < time.perf_counter() - recast_ref:
                 inf_cd_remain = self.buff_infinity()
                 recast_after = 0 if inf_cd_remain > recast_after else inf_cd_remain
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
+            # if stop_event is not None and stop_event.is_set():
+            #     break
+
+            # if self.using_booster and (self.always_using_booster or time.perf_counter() - rune_ref < 250):
+            #     seq = short_press(PRL['H'], 10, execute=False)
+            #     seq.extend(multi_press(PRL['Y'], 3, execute=False))
+            #     exec_key_sequence(seq)
 
             self.go_to_standby_position()
             if 0 < recast_after < time.perf_counter() - recast_ref:
                 inf_cd_remain = self.buff_infinity()
                 recast_after = 0 if inf_cd_remain > recast_after else inf_cd_remain
-            if np.random.random() < (
-                    (time.perf_counter() - guild_buff_ref) / 1500) ** 2:
+            if np.random.random() < ((time.perf_counter() - guild_buff_ref) / 1500) ** 2:
                 if self.buff_guild():
                     guild_buff_ref = time.perf_counter()
-            seq = short_press(PRL['H'], 10, execute=False)
-            seq.extend(multi_press(PRL['Y'], 3, execute=False))
-            exec_key_sequence(seq)
-            short_press(KEY_COR, 5)
+                    short_delay(3)
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
+            # if self.cor:
+            #     short_press(KEY_COR, 6)
+            # if stop_event is not None and stop_event.is_set():
+            #     break
 
             self.back_to_start_position()
             # self.periodically_attack(58 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1, recast_after)
-            self.periodically_attack(0, recast_after, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr))
+            self.periodically_attack(0, recast_after, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr), stop_event=stop_event)
             t1 = time.perf_counter()
 
             self.minor_setup()
             short_delay(3)
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
+            # if stop_event is not None and stop_event.is_set():
+            #     break
 
-            self.periodically_attack(22 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1)
+            self.periodically_attack(25 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1, stop_event=stop_event)
             short_delay(3)
             log("starting loot...")
 
             self.loot()
-            log("loot done. staying until setup...")
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
+            self.go_to_standby_position()
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
             self.back_to_start_position()
+            log("loot done. staying until setup...")
+            # if stop_event is not None and stop_event.is_set():
+            #     break
 
             # self.periodically_attack(56 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1)
-            self.periodically_attack(0, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr))
+            self.periodically_attack(0, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr), stop_event=stop_event)
+        log("loop is over.")
+        dcbot.send_message("grinding ended.")
 
 
 class IL(ExpMages):
@@ -331,6 +382,7 @@ class IL(ExpMages):
         self.blink_vertical_distance = 50
         self.map.set_tp_equiv_distance(int(self.speed * self.time_between_blinks // 2) * 2 + self.blink_horizontal_distance)
         self.attacks = [self.attack1, self.attack2, self.attack3]
+        self.attack2_cd = 5
         self.special_attacks = [self.special_attack_1, self.special_attack_2]
 
     def special_attack_1(self, execute=True):
@@ -345,12 +397,11 @@ class IL(ExpMages):
         return short_press(KEY_S, 1, execute=execute)
 
 
-
-
 class Bishop(ExpMages):
     def __init__(self, map_name):
         super().__init__(map_name)
         self.map.set_tp_equiv_distance(int(self.speed * self.time_between_blinks // 2) * 2 + self.blink_horizontal_distance)
+        self.attack2_cd = 10
 
 
 if __name__ == '__main__':

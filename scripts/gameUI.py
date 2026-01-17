@@ -264,6 +264,8 @@ return applicationName as string'''
         result_bytes = subprocess.check_output(["osascript", "-e", script])
         result_string = result_bytes.decode('utf-8').strip()
         app_name = result_string[result_string.find("Applications:") + len("Applications:"):result_string.find(".app")]
+        if "Launcher" in app_name:
+            app_name = app_name.replace("Launcher", '').strip()
         return app_name
     except subprocess.CalledProcessError as e:
         log(f"Error executing AppleScript: {e}")
@@ -286,7 +288,7 @@ def log(contents):
 
 
 if __name__ == '__main__':
-    subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
+    # subprocess.run(["osascript", "-e", 'tell application "Parallels Desktop" to activate'])
     time.sleep(0.5)
     # skill_name = "infinity2"
     # print(check_frac_cd_to_up(skill_name, screencapture(region=get_skill_region(skill_name))))
@@ -295,18 +297,19 @@ if __name__ == '__main__':
     # x1 = x0 + w
     # y1 = y0 + h
     # screenshot("testinf.png", region=get_skill_region("infinity"))
-    screencapture("new_ui.png")
+    # screencapture("new_ui.png")
 
     minimap_region = extract_minimap_region("Carcion")
     # minimap_region = extract_minimap_region("carcion")
     print(minimap_region)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
-    import time
 
-    while 1:
-        print(get_current_position_of("player", minimap_region))
-        # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
-        time.sleep(1)
+    # import time
+    #
+    # while 1:
+    #     print(get_current_position_of("player", minimap_region))
+    #     # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
+    #     time.sleep(1)
 
     # print(get_window_region())
     # x1 = x0 + w
@@ -321,13 +324,13 @@ if __name__ == '__main__':
     # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'w') as f:
     #     json.dump(data, f)
 
-    # res = locate_all_on_screen(os.path.join(DIR, "resources/infinity.png"), confidence=0.9)
-    # regions = []
-    # for r in res:
-    #     regions.append([])
-    #     for n in r:
-    #          regions[-1].append(int(n))
-    # print(regions)
+    res = locate_all_on_screen(os.path.join(DIR, "resources/infinity.png"), confidence=0.9)
+    regions = []
+    for r in res:
+        regions.append([])
+        for n in r:
+             regions[-1].append(int(n))
+    print(regions)
     # d = {"infinity": regions[0],
     #      "infinity2": regions[1]}
     # with open(os.path.join(DIR, "resources/skill_icon_region.json"), 'wr') as f:
