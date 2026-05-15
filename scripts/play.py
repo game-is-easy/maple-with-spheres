@@ -1,19 +1,17 @@
 from discord_bot import DiscordBotManager
-import threading
-# from gameUI import *
-# from comboKeys import *
-from jobs.MapleJob import MapleJob
-from jobs.ExpMages import IL
+from jobs.ExpMages import IL, Bishop
 
 
 class App:
-    def __init__(self, CharacterJob, map_name, cor=False, using_booster=False, always_using_booster=False, rune_cd=900):
+    def __init__(self, CharacterJob, map_name, cor=False, using_booster=False, always_using_booster=False, silence_mode=False, auto_active_dc_window=False, rune_cd=900):
         # Start the Discord bot immediately (it stays alive and listens for commands)
         self.CharacterJob = CharacterJob
         self.map_name = map_name
         self.cor = cor
         self.using_booster = using_booster
         self.always_using_booster = always_using_booster
+        self.silence_mode = silence_mode
+        self.auto_active_dc_window = auto_active_dc_window
         self.dcbot = DiscordBotManager()
         self.dcbot.start_bot()
         self.character = None
@@ -24,6 +22,8 @@ class App:
         self.character.cor = self.cor
         self.character.using_booster = self.using_booster
         self.character.always_using_booster = self.always_using_booster
+        self.character.silence_mode = self.silence_mode
+        self.character.auto_active_dc_window = self.auto_active_dc_window
 
     def main(self):
         """Main controller entrypoint.
@@ -43,30 +43,26 @@ class App:
 
 
 if __name__ == '__main__':
+    # map_name = "Star-Swallowing Sea 1"
+    # map_name = "End of the World 1-4"
     # map_name = "Top Deck Passage 6"
-    map_name = "Sunken Ruins 4"
+    # map_name = "Sunken Ruins 4"
+    map_name = "Silent Ashlands 1"
     CharacterJob = IL
-    cor = False  # chains of resentment
-    using_booster = True
-    always_using_booster = False
-    rune_cd = 900
-
-    app = App(CharacterJob, map_name, cor, using_booster, always_using_booster, rune_cd)
-    # if using_booster:
-    #     app.character.using_booster = using_booster
-    # Register the controller so the Discord bot can control it:
-    #   !start  -> starts controller_main in a background thread
-    #   !stop   -> signals it to stop
+    # map_name = "Blooming Spring 1"
+    # CharacterJob = Bishop
+    options = {
+        # "cor": True,  # chains of resentment
+        "using_booster": True,
+        # "always_using_booster": True,
+        # "silence_mode": True,
+        "auto_active_dc_window": True,
+        "rune_cd": 600
+    }
+    app = App(CharacterJob, map_name, **options)
     app.register_with_bot()
     app.dcbot.prepare_for_grind()
     app.dcbot.start_grind()
 
     # Keep the process alive while the bot runs.
     app.dcbot.bot_thread.join()
-
-    # character = IL(map_name)
-    # app.initiate_character()
-    # app.main()
-
-
-    # Keep the process alive while the bot runs.

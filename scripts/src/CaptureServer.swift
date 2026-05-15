@@ -8,7 +8,19 @@ import AppKit
 
 private let BUILD_ID = "CaptureServer build 2026-01-16-fallback-v1"
 
+
 private let ENABLE_DEBUG = false
+
+private enum OutputFormat {
+    case jpeg
+    case png
+}
+
+// Toggle output encoding here.
+private let OUTPUT_FORMAT: OutputFormat = .png
+
+// JPEG quality in [0.0, 1.0]. Only used when OUTPUT_FORMAT == .jpeg.
+private let JPEG_QUALITY: CGFloat = 0.95
 
 @inline(__always) func logDebug(_ msg: String) {
     if ENABLE_DEBUG {
@@ -77,7 +89,7 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
             config.width = Int((window.frame.width * scale).rounded())
             config.height = Int((window.frame.height * scale).rounded())
             config.minimumFrameInterval = CMTime(value: 1, timescale: 15) // Limit to ~15fps
-            config.queueDepth = 1
+            config.queueDepth = 3
 
             stream = SCStream(filter: filter, configuration: config, delegate: self)
             try stream?.addStreamOutput(self, type: .screen, sampleHandlerQueue: DispatchQueue(label: "com.capture.fps", qos: .utility))
@@ -140,7 +152,7 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
     func streamDidBecomeInactive(_ stream: SCStream) { logErr("STREAM_INACTIVE") }
     func stream(_ stream: SCStream, didStopWithError error: Error) { logErr("STREAM_STOP_ERROR: \(error)") }
 
-    /// Send a JPEG frame.
+    /// Send a frame in the configured output format.
     /// - Parameter region: Optional crop rect in *pixel* coordinates, with origin at the TOP-LEFT of the captured window.
     func sendFrame(region: CGRect? = nil) async {
         if !hasStarted {
@@ -157,13 +169,16 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
         if seq != 0 && seq == lastSentSeq {
             // Fast path: don't stall the caller if the stream isn't producing new frames.
             // Wait only a tiny amount (one tick) to give the stream a chance, then fall back.
+            logDebug("first attempt failed, re-syncing... seq=\(seq), lastSentSeq=\(lastSentSeq)")
             try? await Task.sleep(nanoseconds: 5_000_000) // 5ms
             bufferQueue.sync { buffer = self.latestBuffer; seq = self.latestSeq }
+            logDebug("after re-syncing, now have seq=\(seq), lastSentSeq=\(lastSentSeq)")
         }
+//         bufferQueue.async { self.latestBuffer = nil }
 
         if seq != 0 && seq != lastSentSeq,
-           let buffer,
-           let imageBuffer = CMSampleBufferGetImageBuffer(buffer) {
+            let buffer,
+            let imageBuffer = CMSampleBufferGetImageBuffer(buffer) {
 
             lastSentSeq = seq
             if seq <= 5 || seq % 30 == 0 {
@@ -175,7 +190,7 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
             VTCreateCGImageFromCVPixelBuffer(imageBuffer, options: nil, imageOut: &cgImage)
 
             if let cgImage {
-                writeJPEG(cgImage: cgImage, region: region)
+                writeImage(cgImage: cgImage, region: region)
                 return
             }
         }
@@ -210,10 +225,10 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
         }
 
         logDebug("FALLBACK_SCREENSHOT")
-        writeJPEG(cgImage: screenshot, region: region)
+        writeImage(cgImage: screenshot, region: region)
     }
 
-    private func writeJPEG(cgImage: CGImage, region: CGRect?) {
+    private func writeImage(cgImage: CGImage, region: CGRect?) {
         let outImage: CGImage
         if let region {
             let fullW = cgImage.width
@@ -235,8 +250,6 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
             w = min(w, fullW - x)
             h = min(h, fullH - yTop)
 
-//             let yBottom = fullH - yTop - h
-//             let cropRect = CGRect(x: x, y: yBottom, width: w, height: h)
             let cropRect = CGRect(x: x, y: yTop, width: w, height: h)
 
             guard let cropped = cgImage.cropping(to: cropRect) else {
@@ -250,8 +263,21 @@ final class CaptureServer: NSObject, SCStreamOutput, SCStreamDelegate, @unchecke
         }
 
         let data = NSMutableData()
-        if let destination = CGImageDestinationCreateWithData(data as CFMutableData, UTType.jpeg.identifier as CFString, 1, nil) {
-            CGImageDestinationAddImage(destination, outImage, nil)
+        let uti: CFString
+        switch OUTPUT_FORMAT {
+        case .jpeg:
+            uti = UTType.jpeg.identifier as CFString
+        case .png:
+            uti = UTType.png.identifier as CFString
+        }
+
+        if let destination = CGImageDestinationCreateWithData(data as CFMutableData, uti, 1, nil) {
+            if OUTPUT_FORMAT == .jpeg {
+                let props: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: JPEG_QUALITY]
+                CGImageDestinationAddImage(destination, outImage, props as CFDictionary)
+            } else {
+                CGImageDestinationAddImage(destination, outImage, nil)
+            }
             CGImageDestinationFinalize(destination)
 
             let length = data.length

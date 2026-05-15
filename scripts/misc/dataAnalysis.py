@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 
 
-with open("../data/recorded_sequence.json", 'r') as f:
+with open("../../data/recorded_sequence.json", 'r') as f:
     data = json.load(f)
 # with open("fixed_recorded_sequence-2.json", 'r') as f:
 #     data.extend(json.load(f))

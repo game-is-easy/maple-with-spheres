@@ -10,7 +10,9 @@ class Map:
         self.minimap_region: Union[Box, None] = None
         self.start_position: Union[Position, None] = None  # also class-specified placement position
         self.standby_position: Union[Position, None] = None
+        self.transit_position: Union[Position, None] = None
         self.erda_position: Union[Position, None] = None
+        self.erda_direction: Union[str, None] = None
         self.sphere_positions: List[Position] = []
         self.exit_positions: List[Position] = []
         # self.loot_series: List[Tuple[Position | str, Dict[str, int]]] = []
@@ -19,9 +21,11 @@ class Map:
         self.reset_position: Union[Position, None] = None
         self.platforms: Dict[int, List[Dict[str, Union[List[int], int]]]] = {}
         self.platforms_ordered_by_x: Dict[int, List[int]] = {}
-        self.initiate_map()
+        self.bot_level = 0
+        self.standby_to_start_time = 0
         self.tp_equiv_distance = 0
         self.tp_positions_coverage = [100, 50]  # x-range, y-range
+        self.initiate_map()
         self.rune_position = None
 
     def set_tp_equiv_distance(self, tp_equiv_distance):
@@ -62,6 +66,9 @@ class Map:
     def set_standby_position(self, standby_position: Position = None):
         self.standby_position = standby_position or self.start_position
 
+    def set_standby_to_start_time(self, standby_to_start_time: int):
+        self.standby_to_start_time = standby_to_start_time
+
     def initiate_map(self, tp_equiv_distance=50):
         self.set_tp_equiv_distance(tp_equiv_distance)
         maps = read_map_yaml()
@@ -72,14 +79,20 @@ class Map:
                 break
         if map_obj is None:
             return
+        if map_obj.get("bot_level"):
+            self.bot_level = map_obj["bot_level"]
         if map_obj.get("start_position"):
             self.set_start_position(Position(*map_obj["start_position"]))
         if map_obj.get("standby_position"):
             self.set_standby_position(Position(*map_obj["standby_position"]))
         else:
             self.set_standby_position()
+        if map_obj.get("standby_to_start_time"):
+            self.set_standby_to_start_time(map_obj["standby_to_start_time"])
         if map_obj.get("erda_position"):
             self.set_erda_position(Position(*map_obj["erda_position"]))
+        if map_obj.get("erda_direction"):
+            self.erda_direction = map_obj["erda_direction"]
         if map_obj.get("reset_position"):
             self.set_reset_position(Position(*map_obj["reset_position"]))
         if map_obj.get("sphere_positions"):
@@ -109,9 +122,9 @@ class Map:
         if map_obj.get("platforms"):
             for platform in map_obj["platforms"]:
                 if platform['y'] in self.platforms:
-                    self.platforms[platform['y']].append({"edges": platform['x'], "rope": platform.get('rope')})
+                    self.platforms[platform['y']].append({"edges": platform['x'], "rope_down": platform.get('rope') or [], "rope_up": platform.get("rope_up") or []})
                 else:
-                    self.platforms.update({platform['y']: [{"edges": platform['x'], "rope": platform.get('rope')}]})
+                    self.platforms.update({platform['y']: [{"edges": platform['x'], "rope_down": platform.get('rope') or [], "rope_up": platform.get("rope_up") or []}]})
         self.minimap_region = extract_minimap_region(map_obj["region"].lower())
 
     def get_platform(self, position: Position):

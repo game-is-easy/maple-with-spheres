@@ -4,7 +4,7 @@ from pynput import keyboard
 from pathlib import Path
 
 duration = 10  # seconds
-output_file = Path("../data/recorded_sequence.json")
+output_file = Path("../../data/recorded_sequence.json")
 
 events = []
 start_time = None  # we initialize this on first event

@@ -12,7 +12,7 @@ Box = collections.namedtuple('Box', 'left top width height')
 RGB = collections.namedtuple('RGB', 'red green blue')
 Position = collections.namedtuple('Position', 'x y')
 # Point = collections.namedtuple('Point', 'x y')
-# screenshot_provider = get_screenshot_provider()
+screenshot_provider = get_screenshot_provider()
 
 
 def screenshot(image_name=None, region=None):
@@ -93,8 +93,8 @@ def locate_all(needle_image, haystack_image, limit=10000, confidence=0.999, show
         Image._show(Image.fromarray(needle_image[:,:,-1]))
         Image._show(Image.fromarray(haystack_image[:,:,-1]))
 
-    print(haystack_image.shape)
-    print(needle_image.shape)
+    # print(haystack_image.shape)
+    # print(needle_image.shape)
     if (haystack_image.shape[0] < needle_image.shape[0] or haystack_image.shape[1] < needle_image.shape[1]):
         # avoid semi-cryptic OpenCV error below if bad size
         raise ValueError('needle dimension(s) exceed the haystack image or region dimensions')
@@ -123,7 +123,10 @@ def locate(needle_image, haystack_image, limit=10000, confidence=0.999):
 
 def locate_all_on_screen(im_name, region=None, confidence=0.999, target_color=None, color_tolerance=0):
     needle_image = cv2.imread(im_name)
-    haystack_image = screencapture(region=region)
+    # haystack_image = screencapture(region=region)
+    haystack_image = screengrab(region=region)
+    if haystack_image is None:
+        return None
     if target_color is not None:
         needle_image = filter_color(needle_image, target_color, color_tolerance)
         haystack_image = filter_color(haystack_image, target_color, color_tolerance)
@@ -177,7 +180,7 @@ def pixel_match_color(x, y, expected_RGB_color, tolerance=0):
 
 
 if __name__ == '__main__':
-    # import time
+    import time
     # n_image = 1
     # for _ in range(3):
     #     screencapture(region=(100,100,2,2))
@@ -189,6 +192,13 @@ if __name__ == '__main__':
     #     print("end", time.perf_counter() - t0)
     #     n_image += 1
     # screencapture("test002.png", (100, 100, 500, 300))
-    screenshot("screenshot_test.png")
-    screencapture("screencapture_test.png")
-    screengrab("screengrab_text.png")
+    # screenshot("screenshot_test.png")
+    # screencapture("screencapture_test.png")
+    # screengrab("screengrab_test.png")
+    # screengrab("screengrab_test2.png")
+    # screengrab("screengrab_test3.png")
+    # time.sleep(2)
+    # im = screengrab()
+    # cv2.imshow("test", im)
+    # cv2.waitKey(0)
+    print(locate_on_screen("../resources/confirm_buff_seq.png", confidence=0.8))

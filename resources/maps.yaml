@@ -1,11 +1,87 @@
 # maps.yaml
 
+- name: "Silent Ashlands 1"
+  region: "Tallahart"
+  top_level: 30
+  start_position: [236, 102]
+  erda_position: [236, 102]
+  standby_position: [236, 102]
+  sphere_positions:
+    - [308, 100]
+    - [78, 102]
+    - [152, 102]
+  loot_series:
+    - position: [308, 100]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 50
+    - position: [78, 102]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - action: "attack"
+      params:
+        delay_after_rep: 40
+    - position: [152, 102]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 20
+    - action: "snow_of_spirit"
+      params:
+        delay_after_rep: 20
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 78, 102 ]
+        - [ 308, 102 ]
+  tp_positions_coverage: [50, 50]
+  exit_positions:
+    - [28, 126]
+    - [364, 126]
+  reset_position: null
+  platforms:
+    - x: [ 158, 198 ]
+      y: 34
+      rope: [ 178 ]
+    - x: [ 62, 120 ]
+      y: 58
+      rope: [ 114 ]
+    - x: [ 262, 314 ]
+      y: 58
+      rope: [ 296 ]
+    - x: [ 54, 164 ]
+      y: 80
+      rope: [ 92 ]
+      rope_up: [ 114 ]
+    - x: [ 204, 356 ]
+      y: 80
+      rope: [ 260 ]
+      rope_up: [ 296 ]
+    - x: [ 304, 346 ]
+      y: 100
+      rope: [ 342 ]
+    - x: [ 30, 184 ]
+      y: 102
+      rope: [ 150 ]
+      rope_up: [ 92 ]
+    - x: [ 212, 286 ]
+      y: 102
+      rope: [ 228 ]
+      rope_up: [ 260 ]
+    - x: [ 6, 372 ]
+      y: 126
+      rope_up: [ 150, 228, 342 ]
+
 - name: "Sunken Ruins 4"
   region: "Carcion"
   top_level: 50
   start_position: [52, 96]
   erda_position: [66, 96]
-  standby_position: [66, 96]
+  standby_position: [52, 96]
+  transit_position: [66, 96]
   sphere_positions:
     - [128, 92]
     - [210, 100]
@@ -19,20 +95,20 @@
     - position: [158, 100]
       params:
         tolerance_x: 18
-        tolerance_y: 10
-        delay_after_rep: 5
+        tolerance_y: 25
+        delay_after_rep: 15
     - action: "attack"
       params:
         delay_after_rep: 15
     - position: [200, 100]
       params:
         tolerance_x: 18
-        tolerance_y: 10
-        delay_after_rep: 15
+        tolerance_y: 25
+        delay_after_rep: 25
     - position: [272, 94]
       params:
         tolerance_x: 10
-        tolerance_y: 10
+        tolerance_y: 20
         delay_after_rep: 0
     - action: "snow_of_spirit"
       params:
@@ -198,5 +274,349 @@
 
 - name: "Blooming Spring 1"
   region: "Shangri-La"
-  start_position: [84, 86]
-  reset_position: [84, 62]
+  top_level: 40
+  bot_level: 108
+  start_position: [88, 86]
+  reset_position: [82, 62]
+  erda_position: [130, 86]
+#  standby_position: [ 88, 86 ]
+  standby_position: [ 232, 86 ]
+  standby_to_start_time: 10
+  transit_position: [82, 62]
+  sphere_positions:
+    - [ 194, 86 ]
+    - [ 258, 86 ]
+    - [ 306, 108 ]
+  loot_series: []
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 82, 62 ]
+        - [ 310, 72 ]
+    - loop: false
+      positions:
+        - [ 82, 108 ]
+        - [ 310, 72 ]
+    - loop: false
+      positions:
+        - [ 290, 108 ]
+        - [ 82, 62 ]
+  tp_positions_coverage: [ 50, 50 ]
+  exit_positions:
+    - [ 26, 108 ]
+    - [ 356, 108 ]
+  platforms:
+    - x: [ 182, 258 ]
+      y: 42
+      rope: [ 204 ]
+    - x: [ 68, 146 ]
+      y: 62
+      rope: [ 108 ]
+    - x: [ 160, 192 ]
+      y: 62
+      rope: [ 182 ]
+    - x: [ 212, 266 ]
+      y: 64
+    - x: [ 290, 320 ]
+      y: 72
+      rope: [ 302 ]
+    - x: [ 66, 98 ]
+      y: 86
+    - x: [ 118, 174 ]
+      y: 86
+    - x: [ 188, 266 ]
+      y: 86
+    - x: [ 10, 374 ]
+      y: 108
+
+- name: "The Deepest Part of the Cavern"
+  region: "Arcana"
+  top_level: 40
+  bot_level: 77
+  start_position: [197, 39]
+  erda_position: [261, 39]
+  erda_direction: "right"
+  standby_position: [357, 39]
+  standby_to_start_time: 4
+  loot_series:
+    - action: "press"
+      key_code: "4"
+      params:
+        delay_after_rep: 6
+#    - position: [389, 47]
+#      params:
+#        tolerance_x: 10
+#        tolerance_y: 20
+#        delay_after_rep: 15
+    - position: [311, 77]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 5
+    - action: "attack"
+      params:
+        delay_after_rep: 5
+    - position: [247, 77]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - position: [183, 77]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+  exit_positions:
+    - [169, 39]
+  reset_position: [ 197, 39 ]
+  platforms:
+    - x: [ 157, 179 ]
+      y: 39
+    - x: [ 187, 377 ]
+      y: 39
+      rope: [ 197, 263, 357 ]
+    - x: [ 383, 421 ]
+      y: 47
+      rope: [ 389 ]
+    - x: [ 425, 443 ]
+      y: 59
+    - x: [ 143, 257 ]
+      y: 77
+    - x: [ 271, 349 ]
+      y: 77
+    - x: [ 361, 419 ]
+      y: 77
+      rope_up: [ 389 ]
+
+- name: "Star-Swallowing Sea 1"
+  region: "Sellas"
+  top_level: 30
+  bot_level: 102
+  start_position: [144, 102]
+  erda_position: [112, 70]
+  erda_direction: "right"
+  standby_position: [222, 70]
+  standby_to_start_time: 4
+  loot_series:
+    - action: "press"
+      key_code: "4"
+      params:
+        delay_after_rep: 5
+    - position: [212, 70]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 5
+    - position: [148, 70]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 5
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 104, 38 ]
+        - [ 188, 102 ]
+  exit_positions:
+    - [80, 102]
+    - [272, 102]
+  platforms:
+    - x: [ 157, 179 ]
+      y: 39
+    - x: [ 187, 377 ]
+      y: 39
+      rope: [ 197, 263, 357 ]
+    - x: [ 383, 421 ]
+      y: 47
+      rope: [ 389 ]
+    - x: [ 425, 443 ]
+      y: 59
+    - x: [ 143, 257 ]
+      y: 77
+    - x: [ 271, 349 ]
+      y: 77
+    - x: [ 361, 419 ]
+      y: 77
+      rope_up: [ 389 ]
+
+- name: "End of the World 1-4"
+  region: "Limina"
+  top_level: 50
+  bot_level: 146
+  start_position: [84, 146]
+  erda_position: [264, 114]
+  erda_direction: "right"
+  standby_position: [160, 126]
+  standby_to_start_time: 3
+  loot_series:
+    - action: "press"
+      key_code: "4"
+      params:
+        delay_after_rep: 5
+    - position: [84, 146]
+      params:
+        tolerance_x: 6
+        tolerance_y: 10
+        delay_after_rep: 5
+  tp_position_series: []
+#    - loop: true
+#      positions:
+#        - [ 104, 38 ]
+#        - [ 188, 102 ]
+  exit_positions:
+    - [46, 112]
+    - [304, 80]
+  platforms: []
+#    - x: [ 157, 179 ]
+#      y: 39
+#    - x: [ 187, 377 ]
+#      y: 39
+#      rope: [ 197, 263, 357 ]
+#    - x: [ 383, 421 ]
+#      y: 47
+#      rope: [ 389 ]
+#    - x: [ 425, 443 ]
+#      y: 59
+#    - x: [ 143, 257 ]
+#      y: 77
+#    - x: [ 271, 349 ]
+#      y: 77
+#    - x: [ 361, 419 ]
+#      y: 77
+#      rope_up: [ 389 ]
+
+- name: "Royal Library Section 1"
+  region: "Cernium"
+  top_level: 30
+  bot_level: 110
+  start_position: [64, 78]
+  erda_position: [126, 78]
+#  erda_direction: "right"
+  standby_position: [66, 78]
+  sphere_positions:
+    - [202, 78]
+    - [266, 78]
+  standby_to_start_time: 0
+  loot_series:
+    - position: [148, 78]
+      params:
+        tolerance_x: 10
+        tolerance_y: 10
+        delay_after_rep: 20
+    - position: [210, 78]
+      params:
+        tolerance_x: 10
+        tolerance_y: 10
+        delay_after_rep: 20
+    - position: [242, 78]
+      params:
+        tolerance_x: 10
+        tolerance_y: 10
+        delay_after_rep: 10
+    - position: [274, 78]
+      params:
+        tolerance_x: 10
+        tolerance_y: 10
+        delay_after_rep: 10
+  tp_position_series: []
+#    - loop: true
+#      positions:
+#        - [ 104, 38 ]
+#        - [ 188, 102 ]
+  exit_positions:
+    - [42, 110]
+    - [302, 46]
+    - [306, 110]
+  platforms:
+    - x: [ 106, 188 ]
+      y: 38
+      rope: [ 138 ]
+    - x: [ 34, 98 ]
+      y: 44
+    - x: [ 198, 250 ]
+      y: 44
+      rope: [ 216 ]
+    - x: [ 262, 314 ]
+      y: 46
+    - x: [ 40, 130 ]
+      y: 78
+      rope: [ 80 ]
+    - x: [ 144, 208 ]
+      y: 78
+      rope: [ 154 ]
+    - x: [ 222, 298 ]
+      y: 78
+      rope_up: [ 286 ]
+    - x: [ 28, 320]
+      y: 110
+      rope_up: [80, 154, 286]
+
+- name: "Captured Alley 2"
+  region: "Odium"
+  top_level: 40
+  bot_level: 104
+  start_position: [268, 76]
+  erda_position: [246, 76]
+#  erda_direction: "right"
+  standby_position: [268, 76]
+  sphere_positions:
+    - [182, 78]
+    - [118, 78]
+    - [54, 78]
+  standby_to_start_time: 0
+  loot_series: []
+#    - position: [148, 78]
+#      params:
+#        tolerance_x: 10
+#        tolerance_y: 10
+#        delay_after_rep: 20
+#    - position: [210, 78]
+#      params:
+#        tolerance_x: 10
+#        tolerance_y: 10
+#        delay_after_rep: 20
+#    - position: [242, 78]
+#      params:
+#        tolerance_x: 10
+#        tolerance_y: 10
+#        delay_after_rep: 10
+#    - position: [274, 78]
+#      params:
+#        tolerance_x: 10
+#        tolerance_y: 10
+#        delay_after_rep: 10
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 68, 78 ]
+        - [ 250, 104 ]
+        - [ 268, 48 ]
+  tp_positions_coverage: [50, 50]
+  exit_positions:
+    - [18, 104]
+    - [330, 104]
+  platforms:
+    - x: [ 36, 96 ]
+      y: 48
+    - x: [ 118, 202 ]
+      y: 48
+      rope: [162]
+    - x: [ 246, 294 ]
+      y: 48
+    - x: [ 32, 92 ]
+      y: 78
+      rope: [50]
+    - x: [ 108, 156 ]
+      y: 76
+    - x: [ 170, 218 ]
+      y: 78
+      rope: [182]
+    - x: [ 234, 294 ]
+      y: 76
+      rope: [278]
+    - x: [ 310, 344 ]
+      y: 72
+      rope: [340]
+    - x: [ 10, 344]
+      y: 104
+      rope_up: [50, 182, 278]

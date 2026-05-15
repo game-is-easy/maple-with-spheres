@@ -284,8 +284,8 @@ async def bulk_dm_error(ctx, error):
 
 
 if __name__ == "__main__":
-    with open("../resources/token.txt", 'r') as f:
+    with open("../../resources/token.txt", 'r') as f:
         BOT_TOKEN = f.readlines()[0]
-    IMAGE_PATH = "/Users/qiaoxuan/PycharmProjects/maple-with-spheres/training/08082349_4.png"  # or set IMAGE_URL instead
+    IMAGE_PATH = "/training/08082349_4.png"  # or set IMAGE_URL instead
     # Run the bot
     bot.run(BOT_TOKEN)

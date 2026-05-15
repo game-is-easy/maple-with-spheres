@@ -5,7 +5,7 @@ import numpy as np
 mode = "prl"
 
 if mode == "prl":
-    from keyInject import *
+    from scripts.src.keyInject import *
 
     KEY_BLINK = PRL['V']
     KEY_JUMP = PRL['C']
@@ -38,8 +38,8 @@ if mode == "prl":
         keySequence(seq)
 
 else:
-    from quartzKeys import keyDown, keyUp, keyPress
-    from keyCodes import *
+    from scripts.src.quartzKeys import keyDown, keyUp
+    from scripts.src.keyCodes import *
 
     KEY_BLINK = KEY_V
     KEY_JUMP = KEY_C

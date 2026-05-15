@@ -1,6 +1,6 @@
 from gameUI import *
 from comboKeys import *
-# from jobs.ExpMages import IL
+from jobs.ExpMages import IL, Bishop
 # from maps.top_deck_6 import back_to_start_position, minor_setup, setup_placement, loot
 from discord_bot import start_bot, send_text_message, send_dm_and_wait_for_response
 from scripts.arrow_detection.process_arrow_image import *
@@ -260,22 +260,22 @@ def hold_while_inactive(key_name):
 
 
 if __name__ == '__main__':
-    # start_bot()
-    # if not os.path.exists(os.path.join(DIR, "training")):
-    #     os.mkdir(os.path.join(DIR, "training"))
-    # activate_window()
-    #
-    # character = IL("Top Deck Passage 6")
-    #
-    # def go_to_fn(position, need_jump_combo=False, attempt_jump_blink=True, tolerance_x=2, tolerance_y=2, tolerance_left=None, tolerance_right=None, teleport_to_position=False):
-    #     return character.go_to(position, need_jump_combo, attempt_jump_blink, tolerance_x, tolerance_y, tolerance_left, tolerance_right, teleport_to_position=teleport_to_position)
-    #
+    start_bot()
+    if not os.path.exists(os.path.join(DIR, "training")):
+        os.mkdir(os.path.join(DIR, "training"))
+    activate_window()
+
+    character = Bishop("The Deepest Part of the Cavern")
+
+    def go_to_fn(position, need_jump_combo=False, attempt_jump_blink=True, tolerance_x=2, tolerance_y=2, tolerance_left=None, tolerance_right=None, teleport_to_position=False):
+        return character.go_to(position, need_jump_combo, attempt_jump_blink, tolerance_x, tolerance_y, tolerance_left, tolerance_right, teleport_to_position=teleport_to_position)
+
     # minor_setup_fn = minor_setup
     # setup_fn = setup_placement
     # loot_fn = loot
     # back_fn = back_to_start_position
-    #
-    # rune_cd = 900
+
+    rune_cd = 900
     # loop(minor_setup_fn, setup_fn, loot_fn, back_fn, go_to_fn, rune_cd, character)
 
-    hold_while_inactive("SPACE")
+    # hold_while_inactive("SPACE")

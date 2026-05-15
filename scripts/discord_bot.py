@@ -1,3 +1,4 @@
+import cv2
 import discord
 from discord.ext import commands, tasks
 import asyncio
@@ -6,7 +7,8 @@ import certifi
 from pynput import keyboard
 import threading
 import os
-from locate_im import screencapture
+import io
+from locate_im import screencapture, screengrab
 from comboKeys import short_press, hold, PRL, exec_key_sequence
 from gameUI import get_window_region
 
@@ -79,20 +81,27 @@ class DiscordBotManager:
             # Process other bot commands
             await self.bot.process_commands(message)
 
-        @self.bot.command(name="see", )
+        @self.bot.command(name="see")
         async def send_screenshot(ctx):
             """
             See real-time in-game screenshot
             """
             tmp_filename = "../temp/gamescreen.png"
-            screencapture(tmp_filename, region=get_window_region())
-            with open(tmp_filename, 'rb') as f:
-                picture = discord.File(f)
-                if ctx.guild is None:
-                    await self.target_user.send(file=picture)
-                else:
-                    await self.channel.send(file=picture)
-            os.unlink(tmp_filename)
+            img = screengrab()
+            ok, buf = cv2.imencode(".jpg", img)
+            picture = discord.File(io.BytesIO(buf.tobytes()), filename="screen.jpg")
+            if ctx.guild is None:
+                await self.target_user.send(file=picture)
+            else:
+                await self.channel.send(file=picture)
+            # screencapture(tmp_filename, region=get_window_region())
+            # with open(tmp_filename, 'rb') as f:
+            #     picture = discord.File(f)
+            #     if ctx.guild is None:
+            #         await self.target_user.send(file=picture)
+            #     else:
+            #         await self.channel.send(file=picture)
+            # os.unlink(tmp_filename)
 
         @self.bot.command(name="press")
         # @discord.app_commands.describe(key_name="name of key on keyboard, e.g. z, return, etc.")
@@ -378,28 +387,6 @@ class DiscordBotManager:
                     await self.target_user.send(content=message, file=picture)
             elif message:
                 await self.target_user.send(message)
-
-            # print(f"DM sent successfully! Now waiting for key '{wait_keys}' or Discord reply...")
-            #
-            # # Set up keyboard listener
-            # listener_stopped = threading.Event()
-            #
-            # def stop_listener():
-            #     listener_stopped.set()
-            #
-            # # Convert string key to list for checking
-            # if isinstance(wait_keys, str):
-            #     target_keys = list(wait_keys.lower())
-            # else:
-            #     target_keys = wait_keys
-            #
-            # listener = keyboard.Listener(
-            #     on_press=lambda key: self.on_key_press(key, target_keys,
-            #                                            stop_listener)
-            # )
-            #
-            # # Start listening for keyboard input
-            # listener.start()
             self.waiting_for_reply = True
 
             # Wait for either condition with proper timeout handling

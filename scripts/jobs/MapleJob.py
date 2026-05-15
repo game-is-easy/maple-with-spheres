@@ -6,14 +6,16 @@ from scripts.maps.Map import Map
 from scripts.arrow_detection.process_arrow_image import process_image
 
 WINDOW_REGION = get_window_region()
-ARROW_REGION = (600 + WINDOW_REGION[0], 400 + WINDOW_REGION[1] - 68, 1360, 400)
+# ARROW_REGION = (600 + WINDOW_REGION[0], 400 + WINDOW_REGION[1] - 68, 1360, 400)
+ARROW_REGION = (600, 400 - 68, 1360, 400)
 
 
 class MapleJob:
     def __init__(self, map_name):
         # self.minimap_region = extract_minimap_region()
         self.speed = 32
-        self.start_speed = 8
+        self.start_speed = 0
+        self.accelerate_time = 0.15
         self.jump_height = 12
         self.map = Map(map_name)
         self.current_position = None
@@ -21,38 +23,64 @@ class MapleJob:
         self.guild_critdmg_region = get_skill_region("guild_critdmg")
         self.attacks = []
         self.special_attacks = []
+        self.max_sphere = True
         self.mercedes_cdr = 0.05
         self.cor = False  # chains of resentment
         self.using_booster = False
         self.always_using_booster = False
+        self.silence_mode = False
+        self.auto_active_dc_window = False
         self.booster_use_timestamp = 0
         self.erda_cast_timestamp = 0
         self.rune_unlock_timestamp = 0
         self.next_task_start_at = 0
 
+    def inv_x_t(self, x):
+        acceleration = (self.speed - self.start_speed) / self.accelerate_time
+        accelerated_distance = self.accelerate_time * (self.speed + self.start_speed) / 2
+        if x < accelerated_distance:
+            mean_t = (2 * x / acceleration) ** 0.5
+        else:
+            mean_t = (x - accelerated_distance) / self.speed + self.accelerate_time
+        std = float(np.min([mean_t * 0.05, 0.1]))
+        min = mean_t - 2 * std
+        max = mean_t + 2 * std
+        return random_norm(mean_t, std, min, max)
+
+
     def attack1(self, execute=True):
         return short_press(KEY_ATT, 5, execute=execute)
 
     def buff_guild(self):
-        buffed = False
-        keyDown(KEY_COMBO)
-        short_delay(3)
-        guild_cd = check_time_to_up("guild_boss", self.guild_boss_region, 300)
-        seq = []
-        if guild_cd == 0:
-            seq.extend(short_press(KEY_GUILD_CRITDMG, 1, execute=False))
-            seq.extend(short_press(KEY_GUILD_DMG, 1, execute=False))
-            seq.extend(short_press(KEY_GUILD_BOSS, 3, execute=False))
-            seq.extend(get_keyUp_seq(KEY_COMBO, get_short_delay(3)))
-            seq.extend(short_press(KEY_ECHO, 1, execute=False))
-            buffed = True
-        else:
-            seq.extend(get_keyUp_seq(KEY_COMBO, get_short_delay(1)))
+        # buffed = False
+        # keyDown(KEY_COMBO)
+        # short_delay(5)
+        # guild_cd = check_time_to_up("guild_boss", self.guild_boss_region, 300)
+        # seq = []
+        # if guild_cd == 0:
+        #     seq.extend(short_press(KEY_GUILD_CRITDMG, 3, execute=False))
+        #     seq.extend(short_press(KEY_GUILD_DMG, 3, execute=False))
+        #     seq.extend(short_press(KEY_GUILD_BOSS, 3, execute=False))
+        #     seq.extend(get_keyUp_seq(KEY_COMBO, get_short_delay(3)))
+        #     seq.extend(short_press(KEY_ECHO, 1, execute=False))
+        #     buffed = True
+        # else:
+        #     seq.extend(get_keyUp_seq(KEY_COMBO, get_short_delay(1)))
+        # exec_key_sequence(seq)
+        # # dialog_check_im_path = os.path.join(RESOURCES_DIR, "cancel.png")
+        # # if locate_on_screen(dialog_check_im_path, region=(1300, 940, 160, 50), confidence=0.9):
+        # while check_skill_use_popup():
+        #     short_press(KEY_ESC, 3)
+        #     buffed = False
+        short_press(KEY_ECHO, 6)
+        region = check_buff_use_popup()
+        buffed = region is None
+        while region:
+            short_press(PRL["ENTER"], 5)
+            region = check_skill_use_popup()
+        seq = short_press(KEY_LEFT_ARROW, 3, False)
+        seq.extend(short_press(KEY_RIGHT_ARROW, 1, False))
         exec_key_sequence(seq)
-        dialog_check_im_path = os.path.join(RESOURCES_DIR, "cancel.png")
-        if locate_on_screen(dialog_check_im_path, region=(1300, 940, 160, 50), confidence=0.9):
-            short_press(KEY_ESC)
-            buffed = False
         return buffed
 
     def enter_door(self, door_position, target_position, max_timeout=6, **kwargs):
@@ -102,13 +130,21 @@ class MapleJob:
     def back_to_start_position(self):
         return self.go_to(self.map.start_position, teleport_to_position=True)
 
+    def go_to_transit_position(self):
+        if self.map.transit_position is not None:
+            return self.go_to(self.map.transit_position, tolerance_x=4, tolerance_y=4, teleport_to_position=True)
+
     def go_to_standby_position(self):
+        self.go_to_transit_position()
         return self.go_to(self.map.standby_position, tolerance_x=4, tolerance_y=4, teleport_to_position=True)
 
     def minor_setup(self):
         self.back_to_start_position()
         short_press(KEY_TS, 8)
         self.go_to(self.map.erda_position, tolerance_x=4, tolerance_y=4)
+        if self.map.erda_direction is not None:
+            arrow_key_code = KEY_LEFT_ARROW if self.map.erda_direction == "left" else KEY_RIGHT_ARROW
+            multi_press(arrow_key_code, 2)
         short_press(KEY_ERDA, 8)
         self.erda_cast_timestamp = time.perf_counter()
 
@@ -132,6 +168,10 @@ class MapleJob:
                     key_code = KEY_ATT3
                 elif loot_event["action"] == "snow_of_spirit":
                     key_code = KEY_1
+                elif loot_event["action"] == "press":
+                    print(loot_event)
+                    # key_code = PRL[str(loot_event["key_code"])]
+                    key_code = KEY_TS
                 else:
                     key_code = KEY_ATT
                 short_press(key_code, **loot_event.get("params"))
@@ -150,8 +190,9 @@ class MapleJob:
             self.map.find_rune_on_map()
         if self.map.rune_position is not None:
             dcbot.send_message(f"[{datetime.now().strftime('%H:%M:%S')}] Rune spwaned. Be ready.")
-            subprocess.run(['say', 'Rune spawned.'])
             if first_attempt:
+                if not self.silence_mode:
+                    subprocess.run(['say', 'Rune spawned.'])
                 self.attack1()
                 rune_platform_edges = self.map.get_edges_at(self.map.rune_position)
                 tolerance_left = int(np.min([self.map.rune_position.x - rune_platform_edges[0], 4])) if rune_platform_edges else 4
@@ -162,28 +203,31 @@ class MapleJob:
             file_name = datetime.now().strftime('%m%d%H%M')
             # screenshot(os.path.join(DIR, f"training/{file_name}_base.png"), region=(750, 400, 1060, 300))
             press_duration = random_norm(0.05, 0.01, 0.02, 0.08)
-            for _ in range(3):
-                screencapture(region=(100, 100, 2, 2))
+            # for _ in range(3):
+            #     screencapture(region=(100, 100, 2, 2))
+            if not self.silence_mode:
+                if active_app is None:
+                    active_app = get_active_application()
+                time.sleep(0.1)
+                activate_window()
+                time.sleep(0.1)
+                activate_window("Discord")
+            elif self.auto_active_dc_window:
+                activate_window("Discord")
+
             n_image = 1
-            if active_app is None:
-                active_app = get_active_application()
-            time.sleep(0.1)
-            activate_window()
-            time.sleep(0.1)
-            activate_window("Discord")
             t0 = time.perf_counter()
             keyPress(KEY_INTERACT, press_duration)
             time.sleep(float(np.max([0.2 - time.perf_counter() + t0, 0])))
             images = []
             while time.perf_counter() - t0 < 0.8:
-                images.append(screencapture(os.path.join(DIR, f"training/{file_name}_{n_image}.png"), region=ARROW_REGION))
+                # images.append(screencapture(os.path.join(DIR, f"training/{file_name}_{n_image}.png"), region=ARROW_REGION))
+                images.append(screengrab(os.path.join(DIR, f"training/{file_name}_{n_image}.png"), region=ARROW_REGION))
                 n_image += 1
             time.sleep(0.3)
-            # base_image_path = os.path.join(DIR, f"training/{file_name}_1.png")
-            # arrow_image_path = os.path.join(DIR, f"training/{file_name}_{n_image - 1}.png")
-            image_path = os.path.join(DIR,
-                                      f"training/{file_name}_{n_image}.png")
-            images.append(screencapture(image_path, region=ARROW_REGION))
+            image_path = os.path.join(DIR, f"training/{file_name}_{n_image}.png")
+            # images.append(screencapture(image_path, region=ARROW_REGION))
+            images.append(screengrab(image_path, region=ARROW_REGION))
             result = dcbot.send_dm_and_wait_for_response(user_id=0, image_path=image_path, timeout=10.0)
             processed_image_path = os.path.join(DIR, f"training/{file_name}_processed.png")
             processed_image_path_2 = os.path.join(DIR, f"training/{file_name}_processed_2.png")
@@ -206,20 +250,18 @@ class MapleJob:
                             random_delay_rep = 1 if np.random.random() < 0.7 else 3
                             seq.extend(short_press(arrow_key, random_delay_rep, execute=False))
                         else:
-                            # return self.unlock_rune(rune_position, dcbot, attempts - 1)
                             return self.unlock_rune(dcbot, attempts - 1, active_app=active_app)
-                    # seq.extend(random_action(self.attack1, self.attack2)(execute=False))
                     seq.extend(self.attack1(execute=False))
                     exec_key_sequence(seq)
                     # TODO: check if rune unlock is successful
                     self.rune_unlock_timestamp = time.perf_counter()
-                if active_app is not None:
-                    subprocess.run(["osascript", "-e",
-                                    'tell application "System Events" to set visible of process "Discord" to False'])
+                if active_app is not None and not self.silence_mode:
+                    subprocess.run(["osascript", "-e", 'tell application "System Events" to set visible of process "Discord" to False'])
                     activate_window(active_app)
+                elif self.auto_active_dc_window:
+                    subprocess.run(["osascript", "-e", 'tell application "System Events" to set visible of process "Discord" to False'])
                 if os.path.exists(os.path.join(DIR, f"training/labels.json")):
-                    with open(os.path.join(DIR, f"training/labels.json"),
-                              'r') as f:
+                    with open(os.path.join(DIR, f"training/labels.json"), 'r') as f:
                         data = json.load(f)
                 else:
                     data = []
@@ -236,17 +278,20 @@ class MapleJob:
         if stop_event is not None and stop_event.is_set():
             return True
         if self.using_booster:
-            booster_use_until = np.inf if self.always_using_booster else self.rune_unlock_timestamp + 250
+            # booster_use_until = np.inf if self.always_using_booster else self.rune_unlock_timestamp + 250
+            booster_use_until = self.rune_unlock_timestamp + 250
             if self.booster_use_timestamp + 108 < time.perf_counter() < booster_use_until:
                 log("Using booster...")
-                # seq = short_press(PRL['H'], 10, execute=False)
-                seq = multi_press(PRL['H'], 3, 10, execute=False)
-                seq.extend(multi_press(PRL['Y'], 3, execute=False))
-                exec_key_sequence(seq)
-                self.booster_use_timestamp = time.perf_counter()
+                self.use_booster()
         if self.cor:
             short_delay(3)
             short_press(KEY_COR, 6)
         return False
 
+    def use_booster(self, booster_key_code=PRL['H']):
+        short_delay(3)
+        seq = multi_press(booster_key_code, 4, 10, execute=False)
+        seq.extend(multi_press(PRL['Y'], 3, execute=False))
+        exec_key_sequence(seq)
+        self.booster_use_timestamp = time.perf_counter()
 

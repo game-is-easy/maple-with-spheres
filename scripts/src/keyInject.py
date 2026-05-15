@@ -50,6 +50,7 @@ _SYMBOLS = {
 
 def type_text(vm, text, inter_key_delay_ms=20):
     events = []
+    inter_key_delay_ms += int(inter_key_delay_ms * random.random() / 3)
     for ch in text:
         use_shift = False
         base = ch
@@ -73,7 +74,6 @@ def type_text(vm, text, inter_key_delay_ms=20):
             # skip unsupported char
             continue
 
-        inter_key_delay_ms += int(inter_key_delay_ms * random.random() / 3)
         if use_shift:
             events.append({"key": SHIFT, "event": "press"})
         events.append({"key": code, "event": "press"})
