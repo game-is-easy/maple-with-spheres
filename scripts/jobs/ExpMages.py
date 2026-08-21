@@ -10,7 +10,7 @@ class ExpMages(MapleJob):
         super().__init__(map_name)
         self.up_jump_height = 60
         self.blink_horizontal_distance = 32
-        self.blink_vertical_distance = 38
+        self.blink_vertical_distance = 40
         self.distance_between_blinks = 14
         self.time_between_blinks = 0.66 * 0.8
         self.attacks = [self.attack1, self.attack2, self.attack3]
@@ -20,6 +20,32 @@ class ExpMages(MapleJob):
         self.infinity_region = get_skill_region("infinity")
         self.infinity2_region = get_skill_region("infinity2")
         self.max_attack_time_gap = 10
+
+    def minor_setup(self):
+        self.back_to_start_position()
+        if self.map.start_post_move is not None:
+            blink_with_key(KEY_TS, PRL[self.map.start_post_move.upper()], 8)
+        else:
+            short_press(KEY_TS, 8)
+        self.go_to(self.map.erda_position, tolerance_x=4, tolerance_y=4)
+        if self.map.erda_direction is not None:
+            arrow_key_code = KEY_LEFT_ARROW if self.map.erda_direction == "left" else KEY_RIGHT_ARROW
+            multi_press(arrow_key_code, 2)
+        if self.map.erda_post_move is not None:
+            blink_with_key(KEY_ERDA, PRL[self.map.erda_post_move.upper()], 8)
+        else:
+            short_press(KEY_ERDA, 8)
+        self.erda_cast_timestamp = time.perf_counter()
+
+    def setup_placement(self):
+        self.minor_setup()
+        for i, position in enumerate(self.map.sphere_positions):
+            self.go_to(position)
+            if self.map.sphere_post_moves and self.map.sphere_post_moves[i]:
+                blink_with_key(KEY_SPHERE, PRL[self.map.sphere_post_moves[i].upper()], 5)
+            else:
+                short_press(KEY_SPHERE, 5)
+        action_with_prob(short_press, 0.8)(KEY_S, 10)
 
     def attack_blink(self, arrow_key_code, delay_after_rep=0, execute=True):
         if time.perf_counter() > self.attack2_cast_ref + self.attack2_cd:
@@ -293,7 +319,7 @@ class ExpMages(MapleJob):
             short_press(KEY_COR, 5)
         return time.perf_counter() - t0
 
-    def loop(self, rune_cd, dcbot, stop_event=None):
+    def loop(self, rune_cd, dcbot=None, stop_event=None):
         log("start!")
         # minimap_region = self.map.minimap_region
         max_duration = rune_cd + 240
@@ -311,10 +337,12 @@ class ExpMages(MapleJob):
             t1 = time.perf_counter()
 
             self.setup_placement()
+            short_press(PRL['3'], 3)  # TODO: remove temporary
+            t_after_setup = time.perf_counter()
             log("setup down...")
             short_delay(3)
 
-            log("buffing...")
+            # log("buffing...")
             recast_after = 0
             # recast_after = self.buff_infinity()
             # if recast_after > 0:
@@ -346,6 +374,10 @@ class ExpMages(MapleJob):
             #     seq.extend(multi_press(PRL['Y'], 3, execute=False))
             #     exec_key_sequence(seq)
 
+            time_stayed = time.perf_counter() - t_after_setup
+            time_to_stay = get_short_delay(20)
+            if time_stayed < time_to_stay:
+                time.sleep(time_to_stay - time_stayed)
             self.go_to_standby_position()
             # if 0 < recast_after < time.perf_counter() - recast_ref:
             #     inf_cd_remain = self.buff_infinity()
@@ -367,7 +399,7 @@ class ExpMages(MapleJob):
             # self.periodically_attack(58 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1, recast_after)
             self.periodically_attack(0, recast_after, stop_at=self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr) - self.map.standby_to_start_time, stop_event=stop_event)
             self.back_to_start_position()
-            next_setup_at = self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr)
+            next_setup_at = self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr) - self.hat_cdr
             self.periodically_attack(0, stop_at=next_setup_at, stop_event=stop_event)
 
             t1 = time.perf_counter()
@@ -397,11 +429,12 @@ class ExpMages(MapleJob):
                 # self.setup_placement()
                 # short_delay(3)
                 # self.back_to_start_position()
-            next_setup_at = self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr)
+            next_setup_at = self.erda_cast_timestamp + 60 * (1 - self.mercedes_cdr) - self.hat_cdr
             self.periodically_attack(0, stop_at=next_setup_at, stop_event=stop_event)
 
         log("loop is over.")
-        dcbot.send_message("grinding ended.")
+        if dcbot:
+            dcbot.send_message("grinding ended.")
 
 
 class IL(ExpMages):
@@ -413,6 +446,7 @@ class IL(ExpMages):
         # self.attacks = [self.attack1, self.attack2, self.attack3]
         self.attack2_cd = 5
         self.special_attacks = [self.special_attack_1, self.special_attack_2]
+        self.hat_cdr = 2
 
     def special_attack_1(self, execute=True):
         seq = short_press(KEY_A, 1, execute=False)
@@ -432,6 +466,7 @@ class Bishop(ExpMages):
         self.map.set_tp_equiv_distance(int(self.speed * self.time_between_blinks // 2) * 2 + self.blink_horizontal_distance)
         self.attack2_cd = 10
         self.max_sphere = False
+        # self.hat_cdr = 2
 
 
 if __name__ == '__main__':

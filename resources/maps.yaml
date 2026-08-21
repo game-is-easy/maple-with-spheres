@@ -1,7 +1,115 @@
 # maps.yaml
 
+- name: "Fate-Fields of Eternity 3"
+  region: "Tallahart"
+  minimap_box: [0, 0, 100, 100]
+  top_level: 50
+  start_position: [140, 100]
+  erda_position: [180, 100]
+  standby_position: [140, 100]
+  sphere_positions:
+    - [258, 104]
+    - [330, 106]
+    - [68, 100]
+  sphere_post_moves:
+    - ""
+    - "down"
+    - "right"
+  loot_series:
+    - position: [214, 100]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - action: "attack"
+      params:
+        delay_after_rep: 40
+    - position: [230, 100]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - position: [ 276, 104 ]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - action: "attack"
+      params:
+        delay_after_rep: 30
+    - position: [330, 84]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - action: "attack"
+      params:
+        delay_after_rep: 10
+    - position: [ 52, 80 ]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 20
+    - action: "attack"
+      params:
+        delay_after_rep: 20
+    - position: [ 52, 126 ]
+      params:
+        tolerance_x: 10
+        tolerance_y: 20
+        delay_after_rep: 10
+    - action: "snow_of_spirit"
+      params:
+        delay_after_rep: 10
+  tp_position_series:
+    - loop: true
+      positions:
+        - [ 52, 80 ]
+        - [ 330, 84 ]
+  tp_positions_coverage: [50, 50]
+  exit_positions:
+    - [18, 126]
+    - [316, 126]
+  reset_position: null
+  platforms:
+    - x: [ 54, 110 ]
+      y: 56
+      rope: [ 102 ]
+    - x: [ 294, 352 ]
+      y: 60
+      rope: [ 320 ]
+    - x: [ 144, 178 ]
+      y: 70
+      rope: [ 146 ]
+    - x: [ 192, 250 ]
+      y: 70
+      rope: [ 244 ]
+    - x: [ 30, 112 ]
+      y: 80
+      rope: [ 38 ]
+    - x: [ 286, 344 ]
+      y: 84
+      rope: [ 300 ]
+    - x: [ 52, 112 ]
+      y: 100
+      rope: [ 80 ]
+    - x: [ 128, 186 ]
+      y: 100
+      rope: [ 176 ]
+    - x: [ 204, 240 ]
+      y: 100
+      rope: [ 230 ]
+    - x: [ 256, 292 ]
+      y: 104
+      rope: [ 260 ]
+    - x: [ 308, 342 ]
+      y: 106
+    - x: [ 8, 374 ]
+      y: 126
+
 - name: "Silent Ashlands 1"
   region: "Tallahart"
+  minimap_box: [0, 0, 100, 100]
   top_level: 30
   start_position: [236, 102]
   erda_position: [236, 102]
@@ -15,7 +123,10 @@
       params:
         tolerance_x: 10
         tolerance_y: 20
-        delay_after_rep: 50
+        delay_after_rep: 10
+    - action: "attack"
+      params:
+        delay_after_rep: 40
     - position: [78, 102]
       params:
         tolerance_x: 10
@@ -77,11 +188,12 @@
 
 - name: "Sunken Ruins 4"
   region: "Carcion"
+  minimap_box: [0, 0, 100, 100]
   top_level: 50
   start_position: [52, 96]
-  erda_position: [66, 96]
+  erda_position: [64, 96]
   standby_position: [52, 96]
-  transit_position: [66, 96]
+  transit_position: [64, 96]
   sphere_positions:
     - [128, 92]
     - [210, 100]
@@ -178,14 +290,27 @@
 
 - name: "Top Deck Passage 6"
   region: "Arteria"
+  minimap_box: [0, 0, 100, 100]
   top_level: 50
-  start_position: [276, 36]
-  erda_position: [204, 72]
+#  start_position: [276, 36]
+#  erda_position: [204, 72]
+#  erda_direction: "left"
+  start_position: [198, 72]
+  start_post_move: "up"
+  erda_position: [272, 36]
+  erda_direction: "right"
+  erda_post_move: "left"
+  standby_position: [240, 132]
+  standby_to_start_time: 10
   snow_spirit_position: [120, 150]
   sphere_positions:
-    - [204, 132]
-    - [278, 124]
+    - [200, 132]
+    - [280, 124]
     - [68, 136]
+  sphere_post_moves:
+    - "right"
+    - "left"
+    - ""
   loot_series:
     - position: [280, 84]
       params:

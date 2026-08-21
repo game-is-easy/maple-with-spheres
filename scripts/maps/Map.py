@@ -9,11 +9,14 @@ class Map:
         self.map_name = map_name
         self.minimap_region: Union[Box, None] = None
         self.start_position: Union[Position, None] = None  # also class-specified placement position
+        self.start_post_move: Union[str, None] = None
         self.standby_position: Union[Position, None] = None
         self.transit_position: Union[Position, None] = None
         self.erda_position: Union[Position, None] = None
         self.erda_direction: Union[str, None] = None
+        self.erda_post_move: Union[str, None] = None
         self.sphere_positions: List[Position] = []
+        self.sphere_post_moves: List[str] = []
         self.exit_positions: List[Position] = []
         # self.loot_series: List[Tuple[Position | str, Dict[str, int]]] = []
         self.loot_series: List[Dict[str, Position | str | Dict[str, int]]] = []
@@ -83,6 +86,8 @@ class Map:
             self.bot_level = map_obj["bot_level"]
         if map_obj.get("start_position"):
             self.set_start_position(Position(*map_obj["start_position"]))
+        if map_obj.get("start_post_move"):
+            self.start_post_move = map_obj["start_post_move"]
         if map_obj.get("standby_position"):
             self.set_standby_position(Position(*map_obj["standby_position"]))
         else:
@@ -93,10 +98,14 @@ class Map:
             self.set_erda_position(Position(*map_obj["erda_position"]))
         if map_obj.get("erda_direction"):
             self.erda_direction = map_obj["erda_direction"]
+        if map_obj.get("erda_post_move"):
+            self.erda_post_move = map_obj["erda_post_move"]
         if map_obj.get("reset_position"):
             self.set_reset_position(Position(*map_obj["reset_position"]))
         if map_obj.get("sphere_positions"):
             self.set_sphere_positions([Position(*p) for p in map_obj["sphere_positions"]])
+        if map_obj.get("sphere_post_moves"):
+            self.sphere_post_moves = map_obj["sphere_post_moves"]
         if map_obj.get("exit_positions"):
             self.set_exit_positions([Position(*p) for p in map_obj["exit_positions"]])
         if map_obj.get("loot_series"):
@@ -154,7 +163,11 @@ class Map:
         return levels
 
     def total_distance_between(self, position_1: Union[Position, 'TpPosition'], position_2: Union[Position, 'TpPosition']):
-        return abs(position_1.x - position_2.x) + abs(position_1.y - position_2.y)
+        # return abs(position_1.x - position_2.x) + abs(position_1.y - position_2.y)
+        lower, upper = sorted([position_1.y, position_2.y])
+        platform_levels = list(filter(lambda y: lower < y <= upper, self.get_all_levels_at(position_2.x)))
+        eq_dy = len(platform_levels) * self.tp_equiv_distance
+        return abs(position_1.x - position_2.x) + eq_dy
 
     def get_tp_route_to_target(self, current_position: Position, target_position: Position, max_tp_count=2, extra_punishment=0):
         shortest_equiv_distance_to_target = self.total_distance_between(current_position, target_position)

@@ -19,6 +19,7 @@ def find_minimap_ui(map_name, img=None):
         x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), confidence=0.8)
     else:
         x, y, _, _ = locate(os.path.join(DIR, f"resources/{map_name}.png"), img, confidence=0.9)
+    print(f"map region symbol x: {x}, y: {y}")
     return x - 20, y + 66
 
 
@@ -60,6 +61,7 @@ def extract_minimap_region(map_name="carcion", img=None, search_frac=1, blur_ker
 
     if best:
         x, y, wc, hc = best
+        print(f"minimap region left: {x}, top {y}, width: {wc}, height: {hc}")
         if im_show:
             cv2.rectangle(img, (x, y), (x + wc, y + hc), (0, 0, 255), 3)
             cv2.namedWindow('minimap detected', cv2.WINDOW_AUTOSIZE)
@@ -316,9 +318,9 @@ if __name__ == '__main__':
     # screenshot("testinf.png", region=get_skill_region("infinity"))
     # screencapture("new_ui.png")
 
-    # minimap_region = extract_minimap_region("tallahart")
+    minimap_region = extract_minimap_region("tallahart")
     # minimap_region = extract_minimap_region("carcion")
-    minimap_region = extract_minimap_region("shangri-la")
+    # minimap_region = extract_minimap_region("shangri-la")
     # minimap_region = extract_minimap_region("odium")
     print(minimap_region)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))

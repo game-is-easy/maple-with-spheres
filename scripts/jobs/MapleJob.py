@@ -24,7 +24,8 @@ class MapleJob:
         self.attacks = []
         self.special_attacks = []
         self.max_sphere = True
-        self.mercedes_cdr = 0.05
+        self.mercedes_cdr = 0.06
+        self.hat_cdr = 0
         self.cor = False  # chains of resentment
         self.using_booster = False
         self.always_using_booster = False
@@ -72,10 +73,14 @@ class MapleJob:
         # while check_skill_use_popup():
         #     short_press(KEY_ESC, 3)
         #     buffed = False
-        short_press(KEY_ECHO, 6)
-        region = check_buff_use_popup()
+        short_press(KEY_ECHO, 1)
+        region = None
+        t0 = time.perf_counter()
+        while region is None and time.perf_counter() - t0 < 1:
+            region = check_buff_use_popup()
+            time.sleep(0.05)
         buffed = region is None
-        while region:
+        while region is not None:
             short_press(PRL["ENTER"], 5)
             region = check_skill_use_popup()
         seq = short_press(KEY_LEFT_ARROW, 3, False)
@@ -189,7 +194,8 @@ class MapleJob:
             # rune_position = get_current_position_of("rune", self.map.minimap_region)
             self.map.find_rune_on_map()
         if self.map.rune_position is not None:
-            dcbot.send_message(f"[{datetime.now().strftime('%H:%M:%S')}] Rune spwaned. Be ready.")
+            if dcbot:
+                dcbot.send_message(f"[{datetime.now().strftime('%H:%M:%S')}] Rune spwaned. Be ready.")
             if first_attempt:
                 if not self.silence_mode:
                     subprocess.run(['say', 'Rune spawned.'])
@@ -218,6 +224,9 @@ class MapleJob:
             n_image = 1
             t0 = time.perf_counter()
             keyPress(KEY_INTERACT, press_duration)
+            if dcbot is None:
+                time.sleep(10)
+                return True
             time.sleep(float(np.max([0.2 - time.perf_counter() + t0, 0])))
             images = []
             while time.perf_counter() - t0 < 0.8:
@@ -266,8 +275,7 @@ class MapleJob:
                 else:
                     data = []
                 data.append({"image_prefix": file_name, "labels": labels})
-                with open(os.path.join(DIR, f"training/labels.json"),
-                          'w') as f:
+                with open(os.path.join(DIR, f"training/labels.json"), 'w') as f:
                     json.dump(data, f)
                 self.map.rune_position = None
                 return True

@@ -13,6 +13,8 @@ if mode == "prl":
     KEY_ERDA = PRL['E']
     KEY_SPHERE = PRL['R']
     KEY_1 = PRL['1']
+    KEY_2 = PRL['2']
+    KEY_3 = PRL['3']
     KEY_BUFF = PRL['6']
     KEY_BUFF2 = PRL['7']
     KEY_ATT = PRL['X']
@@ -33,6 +35,7 @@ if mode == "prl":
     KEY_ESC = PRL["ESCAPE"]
     KEY_TOWN = PRL["J"]
     KEY_COR = PRL['D']
+    KEY_SPACE = PRL["SPACE"]
 
     def exec_key_sequence(seq):
         keySequence(seq)
@@ -228,7 +231,8 @@ def down_blink(delay_after=0.0, execute=True):
 
 
 def jump_seq_combo(combo_seq, hold_key_code=None, delay_after_rep=0, execute=True):
-    duration_jump_press = random_norm(0.1, 0.02, 0.04, 0.16)
+    # duration_jump_press = random_norm(0.1, 0.02, 0.04, 0.16)
+    duration_jump_press = get_short_delay()
     delay_after_jump = float(np.max([random_norm(0.2, 0.02, duration_jump_press, 0.25) - duration_jump_press, smallest_delay()]))
     delay_before_combo = random_norm(0.36, 0.02, 0.3, 0.42) - delay_after_jump - duration_jump_press
     if hold_key_code is not None:
@@ -241,6 +245,7 @@ def jump_seq_combo(combo_seq, hold_key_code=None, delay_after_rep=0, execute=Tru
         seq.extend(combo_seq)
     if hold_key_code is not None:
         seq.extend(get_keyUp_seq(hold_key_code))
+    # print(seq)
     if execute:
         exec_key_sequence(seq)
     else:
@@ -276,10 +281,13 @@ def up_jump(delay_after_rep=8, execute=True):
 
 
 def up_jump_blink(delay_after_rep=5, execute=True):
-    delay_after_up_jump = random_norm(0.4, 0.02, 0.35, 0.45)
-    seq = get_keyPress_seq(KEY_JUMP, get_short_delay(), delay_after_up_jump)
+    delay_after_up_jump = random_norm(0.29, 0.02, 0.25, 0.33)
+    seq = multi_press(KEY_JUMP, n_press=2, delay_after=delay_after_up_jump, execute=False)
+    # delay_after_up_jump = random_norm(0.4, 0.02, 0.35, 0.45)
+    # seq = get_keyPress_seq(KEY_JUMP, get_short_delay(), delay_after_up_jump)
     seq.extend(short_press(KEY_BLINK, delay_after_rep=1, execute=False))
-    return jump_seq_combo(seq, hold_key_code=KEY_UP_ARROW, delay_after_rep=delay_after_rep, execute=execute)
+    # return jump_seq_combo(seq, hold_key_code=KEY_UP_ARROW, delay_after_rep=delay_after_rep, execute=execute)
+    return jump_up_seq_combo(seq, delay_after_rep=delay_after_rep, execute=execute)
 
 
 def random_action(*actions):
@@ -347,11 +355,13 @@ def hold(key_code, duration, delay_after_rep=0, execute=True):
         return seq
 
 
-def multi_press(key_code, n_press=2, delay_after_rep=0, execute=True):
-    if delay_after_rep > 0:
+def multi_press(key_code, n_press=2, delay_after_rep=0, delay_after=None, execute=True):
+    if delay_after is None:
         delay_after = get_short_delay(delay_after_rep)
-    else:
-        delay_after = 0
+    # if delay_after_rep > 0:
+    #     delay_after = get_short_delay(delay_after_rep)
+    # else:
+    #     delay_after = 0
     seq = []
     for _ in range(n_press - 1):
         press_duration = random_norm(0.055, 0.012, smallest_delay())

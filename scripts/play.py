@@ -3,7 +3,7 @@ from jobs.ExpMages import IL, Bishop
 
 
 class App:
-    def __init__(self, CharacterJob, map_name, cor=False, using_booster=False, always_using_booster=False, silence_mode=False, auto_active_dc_window=False, rune_cd=900):
+    def __init__(self, CharacterJob, map_name, cor=False, using_booster=False, always_using_booster=False, silence_mode=False, auto_active_dc_window=False, use_dc=True, rune_cd=900):
         # Start the Discord bot immediately (it stays alive and listens for commands)
         self.CharacterJob = CharacterJob
         self.map_name = map_name
@@ -12,10 +12,20 @@ class App:
         self.always_using_booster = always_using_booster
         self.silence_mode = silence_mode
         self.auto_active_dc_window = auto_active_dc_window
-        self.dcbot = DiscordBotManager()
-        self.dcbot.start_bot()
         self.character = None
         self.rune_cd = rune_cd
+
+        if use_dc:
+            self.dcbot = DiscordBotManager()
+            self.dcbot.start_bot()
+
+            self.register_with_bot()
+            self.dcbot.prepare_for_grind()
+            self.dcbot.start_grind()
+            self.dcbot.bot_thread.join()
+        else:
+            self.initiate_character()
+            self.character.loop(self.rune_cd)
 
     def initiate_character(self):
         self.character = self.CharacterJob(self.map_name)
@@ -43,26 +53,30 @@ class App:
 
 
 if __name__ == '__main__':
+    import os
+    print("PYCHARM_HOSTED" in os.environ)
     # map_name = "Star-Swallowing Sea 1"
     # map_name = "End of the World 1-4"
-    # map_name = "Top Deck Passage 6"
-    # map_name = "Sunken Ruins 4"
-    map_name = "Silent Ashlands 1"
-    CharacterJob = IL
     # map_name = "Blooming Spring 1"
-    # CharacterJob = Bishop
+    # map_name = "Top Deck Passage 6"
+    # map_name = "Silent Ashlands 1"
+    # map_name = "Fate-Fields of Eternity 3"
+    # CharacterJob = IL
+    map_name = "Sunken Ruins 4"
+    CharacterJob = Bishop
     options = {
         # "cor": True,  # chains of resentment
         "using_booster": True,
-        # "always_using_booster": True,
+        "always_using_booster": True,
         # "silence_mode": True,
         "auto_active_dc_window": True,
+        # "use_dc": False,
         "rune_cd": 600
     }
     app = App(CharacterJob, map_name, **options)
-    app.register_with_bot()
-    app.dcbot.prepare_for_grind()
-    app.dcbot.start_grind()
-
-    # Keep the process alive while the bot runs.
-    app.dcbot.bot_thread.join()
+    # app.register_with_bot()
+    # app.dcbot.prepare_for_grind()
+    # app.dcbot.start_grind()
+    #
+    # # Keep the process alive while the bot runs.
+    # app.dcbot.bot_thread.join()
