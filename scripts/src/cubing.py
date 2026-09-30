@@ -58,9 +58,9 @@ def roll(rating_rules, target_scores, max_n_rolls=9999, n_rolled=0, dmt_not_appl
     seq = short_press(KEY_SPACE, delay_after_rep=2, execute=False)
     seq.extend(short_press(KEY_SPACE, delay_after_rep=2, execute=False))
     if dmt_not_apply:
-        seq.extend(multi_press(PRL["ENTER"], delay_after_rep=16, execute=False))
+        seq.extend(multi_press(PRL["ENTER"], delay_after_rep=10, execute=False))
     else:
-        seq.extend(short_press(KEY_SPACE, delay_after_rep=16, execute=False))
+        seq.extend(short_press(KEY_SPACE, delay_after_rep=10, execute=False))
     if type(target_scores) == list:
         assert len(target_scores) == len(rating_rules)
     else:
@@ -88,16 +88,16 @@ if __name__ == '__main__':
     rating_rule_dex = {"DEX": 1, "Attack Power": 3.5, "STR": 0.1, "All Stats": 1.1}
     rating_rule_att = {"Attack Power": 1}
     rating_rules = [
-        # rating_rule_str,
-        # rating_rule_dex,
-        # rating_rule_luk,
+        rating_rule_str,
+        rating_rule_dex,
+        rating_rule_luk,
         rating_rule_int,
         # rating_rule_att,
     ]
-    # target_scores = [70,70,70,70]
-    target_scores = 70
+    # target_scores = [100,70,100,100]
+    target_scores = 60
     #
     # calc_total_score(potential_lines, rating_rules)
-    n_rolls = roll(rating_rules, target_scores, 463, n_rolled=0, dmt_not_apply=True)
+    n_rolls = roll(rating_rules, target_scores, 500, n_rolled=449, dmt_not_apply=False)
     print(f"rolled {n_rolls} times.")
 

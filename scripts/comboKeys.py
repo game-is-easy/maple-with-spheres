@@ -5,44 +5,20 @@ import numpy as np
 mode = "prl"
 
 if mode == "prl":
-    from scripts.src.keyInject import *
+    from .src.keyInject import *
 
-    KEY_BLINK = PRL['V']
-    KEY_JUMP = PRL['C']
-    KEY_TS = PRL['4']
-    KEY_ERDA = PRL['E']
-    KEY_SPHERE = PRL['R']
-    KEY_1 = PRL['1']
-    KEY_2 = PRL['2']
-    KEY_3 = PRL['3']
-    KEY_BUFF = PRL['6']
-    KEY_BUFF2 = PRL['7']
-    KEY_ATT = PRL['X']
-    KEY_ATT2 = PRL['Z']
-    KEY_ATT3 = PRL['SPACE']
-    KEY_INTERACT = PRL['B']
-    KEY_COMBO = PRL["LEFT_ALT"]
-    KEY_GUILD_BOSS = PRL['8']
-    KEY_GUILD_DMG = PRL['9']
-    KEY_GUILD_CRITDMG = PRL['0']
-    KEY_A = PRL['A']
-    KEY_S = PRL['S']
-    KEY_UP_ARROW = PRL["UP"]
-    KEY_LEFT_ARROW = PRL["LEFT"]
-    KEY_RIGHT_ARROW = PRL["RIGHT"]
-    KEY_DOWN_ARROW = PRL["DOWN"]
-    KEY_ECHO = PRL["F6"]
-    KEY_ESC = PRL["ESCAPE"]
-    KEY_TOWN = PRL["J"]
-    KEY_COR = PRL['D']
-    KEY_SPACE = PRL["SPACE"]
+    def exec_key_sequence(seq):
+        keySequence(seq)
+
+elif mode == "vmware":
+    from .src.vmwKeyInject import *
 
     def exec_key_sequence(seq):
         keySequence(seq)
 
 else:
-    from scripts.src.quartzKeys import keyDown, keyUp
-    from scripts.src.keyCodes import *
+    from .src.quartzKeys import keyDown, keyUp
+    from .src.keyCodes import *
 
     KEY_BLINK = KEY_V
     KEY_JUMP = KEY_C

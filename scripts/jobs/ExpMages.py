@@ -1,8 +1,8 @@
 import time
 
-from scripts.jobs.MapleJob import MapleJob
-from scripts.comboKeys import *
-from scripts.gameUI import *
+from .MapleJob import MapleJob
+from ..comboKeys import *
+from ..gameUI import *
 
 
 class ExpMages(MapleJob):
@@ -259,16 +259,16 @@ class ExpMages(MapleJob):
         short_delay(delay_after_rep)
         return current_position
 
-    def buff_infinity(self):
-        inf_cd = check_time_to_up("infinity", self.infinity_region, 180)
-        inf2_cd = check_time_to_up("infinity", self.infinity2_region, 340)
-        print(inf_cd, inf2_cd)
-        if inf_cd == 0 and inf2_cd == 0:
-            short_press(KEY_BUFF2)
-        else:
-            short_press(KEY_BUFF)
-        short_delay(3)
-        return np.max([np.min([10, inf_cd, inf2_cd]), 0])
+    # def buff_infinity(self):
+    #     inf_cd = check_time_to_up("infinity", self.infinity_region, 180)
+    #     inf2_cd = check_time_to_up("infinity", self.infinity2_region, 340)
+    #     print(inf_cd, inf2_cd)
+    #     if inf_cd == 0 and inf2_cd == 0:
+    #         short_press(KEY_BUFF2)
+    #     else:
+    #         short_press(KEY_BUFF)
+    #     short_delay(3)
+    #     return np.max([np.min([10, inf_cd, inf2_cd]), 0])
 
     def attack2(self, execute=True):
         self.attack2_cast_ref = time.perf_counter()
@@ -315,7 +315,7 @@ class ExpMages(MapleJob):
                 exec_key_sequence(seq)
             else:
                 short_delay(10)
-        if self.cor:
+        if self.cor and time.perf_counter() - t0 > 3:
             short_press(KEY_COR, 5)
         return time.perf_counter() - t0
 
@@ -337,7 +337,7 @@ class ExpMages(MapleJob):
             t1 = time.perf_counter()
 
             self.setup_placement()
-            short_press(PRL['3'], 3)  # TODO: remove temporary
+            # short_press(PRL['3'], 3)  # TODO: remove temporary
             t_after_setup = time.perf_counter()
             log("setup down...")
             short_delay(3)
@@ -413,7 +413,7 @@ class ExpMages(MapleJob):
                 #     break
                 self.go_to_standby_position()  # TODO: second standby position/wait position?
 
-                self.periodically_attack(25 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1, stop_event=stop_event)
+                self.periodically_attack(20 + random_norm(1.5, 0.4, 0.5, 2.5) - time.perf_counter() + t1, stop_event=stop_event)
                 short_delay(3)
                 log("starting loot...")
 
@@ -477,7 +477,3 @@ if __name__ == '__main__':
     character = Bishop("Royal Library Section 1")
     # tp_from = character.map.tp_positions[0]
     # character.enter_door(tp_from, tp_from.next())
-    inf_cd = check_time_to_up("infinity", character.infinity_region, 180)
-    inf2_cd = check_time_to_up("infinity", character.infinity2_region, 340)
-    print(character.infinity_region, character.infinity2_region)
-    print(inf_cd, inf2_cd)

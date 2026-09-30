@@ -25,7 +25,54 @@ PRL = {
 
 WASD_TO_ARROW = {'w': PRL["UP"], 's': PRL["DOWN"], 'a': PRL["LEFT"], 'd': PRL["RIGHT"]}
 
-SHIFT = PRL["LEFT_SHIFT"]
+KEY_BLINK = PRL['V']
+KEY_JUMP = PRL['C']
+KEY_TS = PRL['4']
+KEY_ERDA = PRL['E']
+KEY_SPHERE = PRL['R']
+KEY_1 = PRL['1']
+KEY_2 = PRL['2']
+KEY_3 = PRL['3']
+KEY_F1 = PRL['F1']
+KEY_BUFF = PRL['6']
+KEY_BUFF2 = PRL['7']
+KEY_ATT = PRL['X']
+KEY_ATT2 = PRL['Z']
+KEY_ATT3 = PRL['SPACE']
+KEY_INTERACT = PRL['B']
+KEY_COMBO = PRL["LEFT_ALT"]
+KEY_GUILD_BOSS = PRL['8']
+KEY_GUILD_DMG = PRL['9']
+KEY_GUILD_CRITDMG = PRL['0']
+KEY_A = PRL['A']
+KEY_S = PRL['S']
+KEY_D = PRL['D']
+KEY_F = PRL['F']
+KEY_G = PRL['G']
+KEY_H = PRL['H']
+KEY_Q = PRL['Q']
+KEY_W = PRL['W']
+KEY_E = PRL['E']
+KEY_R = PRL['R']
+KEY_T = PRL['T']
+KEY_Y = PRL['Y']
+KEY_Z = PRL['Z']
+KEY_X = PRL['X']
+KEY_C = PRL['C']
+KEY_V = PRL['V']
+KEY_B = PRL['B']
+KEY_N = PRL['N']
+KEY_UP_ARROW = PRL["UP"]
+KEY_LEFT_ARROW = PRL["LEFT"]
+KEY_RIGHT_ARROW = PRL["RIGHT"]
+KEY_DOWN_ARROW = PRL["DOWN"]
+KEY_ECHO = PRL["F6"]
+KEY_ESC = PRL["ESCAPE"]
+KEY_TOWN = PRL["J"]
+KEY_COR = PRL['D']
+KEY_SPACE = PRL["SPACE"]
+KEY_ENTER = PRL["ENTER"]
+KEY_SHIFT = PRL["LEFT_SHIFT"]
 
 def _run_json(vm, events):
     proc = subprocess.run(
@@ -75,11 +122,11 @@ def type_text(vm, text, inter_key_delay_ms=20):
             continue
 
         if use_shift:
-            events.append({"key": SHIFT, "event": "press"})
+            events.append({"key": KEY_SHIFT, "event": "press"})
         events.append({"key": code, "event": "press"})
         events.append({"key": code, "event": "release", "delay": inter_key_delay_ms})
         if use_shift:
-            events.append({"key": SHIFT, "event": "release", "delay": inter_key_delay_ms})
+            events.append({"key": KEY_SHIFT, "event": "release", "delay": inter_key_delay_ms})
 
     return _run_json(vm, events)
 

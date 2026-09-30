@@ -14,7 +14,7 @@
   sphere_post_moves:
     - ""
     - "down"
-    - "right"
+    - ""
   loot_series:
     - position: [214, 100]
       params:
@@ -118,6 +118,10 @@
     - [308, 100]
     - [78, 102]
     - [152, 102]
+  sphere_post_moves:
+    - ""
+    - ""
+    - "left"
   loot_series:
     - position: [308, 100]
       params:

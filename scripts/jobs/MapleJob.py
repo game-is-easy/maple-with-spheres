@@ -1,5 +1,3 @@
-import time
-
 from scripts.comboKeys import *
 from scripts.gameUI import *
 from scripts.maps.Map import Map
@@ -35,6 +33,7 @@ class MapleJob:
         self.erda_cast_timestamp = 0
         self.rune_unlock_timestamp = 0
         self.next_task_start_at = 0
+        self.cor_time = 0
 
     def inv_x_t(self, x):
         acceleration = (self.speed - self.start_speed) / self.accelerate_time
@@ -81,7 +80,7 @@ class MapleJob:
             time.sleep(0.05)
         buffed = region is None
         while region is not None:
-            short_press(PRL["ENTER"], 5)
+            short_press(KEY_ENTER, 5)
             region = check_skill_use_popup()
         seq = short_press(KEY_LEFT_ARROW, 3, False)
         seq.extend(short_press(KEY_RIGHT_ARROW, 1, False))
@@ -175,7 +174,6 @@ class MapleJob:
                     key_code = KEY_1
                 elif loot_event["action"] == "press":
                     print(loot_event)
-                    # key_code = PRL[str(loot_event["key_code"])]
                     key_code = KEY_TS
                 else:
                     key_code = KEY_ATT
@@ -296,10 +294,45 @@ class MapleJob:
             short_press(KEY_COR, 6)
         return False
 
-    def use_booster(self, booster_key_code=PRL['H']):
+    def use_booster(self, booster_key_code=KEY_H):
         short_delay(3)
         seq = multi_press(booster_key_code, 4, 10, execute=False)
-        seq.extend(multi_press(PRL['Y'], 3, execute=False))
+        seq.extend(multi_press(KEY_Y, 3, execute=False))
         exec_key_sequence(seq)
         self.booster_use_timestamp = time.perf_counter()
+
+    def cor_mode(self, critical_hp=70, att_keycode=KEY_SPACE, dcbot=None, stop_event=None):
+        self.cor_time = time.perf_counter() - 603
+        move_time_stamp = time.perf_counter()
+        low_hp_time_stamp = time.perf_counter() + 10
+        standby_position = get_current_position_of("player", minimap_region=self.map.minimap_region)
+        while True:
+            if self.check_stop_event_and_simultaneous_events(stop_event):
+                break
+            if time.perf_counter() - self.cor_time > 602:
+                multi_press(KEY_COR, delay_after_rep=5)
+                self.cor_time = time.perf_counter()
+            hp = check_hp()
+            if hp < 5:
+                break
+            if hp < critical_hp:
+                if hp < 30:
+                    multi_press(KEY_F1, delay_after_rep=1)
+                if low_hp_time_stamp > time.perf_counter():
+                    low_hp_time_stamp = time.perf_counter()
+                if time.perf_counter() - low_hp_time_stamp > 3 or hp < 40:
+                    multi_press(att_keycode, delay_after_rep=20)
+            else:
+                low_hp_time_stamp = time.perf_counter() + 10
+                if np.random.random() < ((time.perf_counter() - move_time_stamp) / 1800) ** 2:
+                    print("moving")
+                    arrow_keycode = KEY_LEFT_ARROW if np.random.random() > 0.5 else KEY_RIGHT_ARROW
+                    hold(arrow_keycode, random_norm(0.3,0.1), delay_after_rep=3)
+                    self.go_to(standby_position)
+                else:
+                    short_delay(20)
+        if dcbot:
+            dcbot.send_channel_message("COR service stopped.")
+
+
 

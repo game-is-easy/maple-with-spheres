@@ -1,19 +1,24 @@
 import json
 import time
 
-from scripts.locate_im import *
-from scripts.src.ocr import ocr_colored_digits
+from .locate_im import *
+from .src.ocr import ocr_colored_digits
 from datetime import datetime
 import subprocess
 import os.path
+import sys
 
 DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 RESOURCES_DIR = os.path.join(DIR, "resources")
 
 MINIMAP_POSITION_DEFAULT = (30, 342)
+HP_REGION = (1025,1497,388,3)
+HP_REGION_PADDING = 3
 
 
 def find_minimap_ui(map_name, img=None):
+    if not map_name:
+        return 16, 268
     if img is None:
         # x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), region=get_window_region(), confidence=0.8)
         x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), confidence=0.8)
@@ -23,7 +28,7 @@ def find_minimap_ui(map_name, img=None):
     return x - 20, y + 66
 
 
-def extract_minimap_region(map_name="carcion", img=None, search_frac=1, blur_kernel=(7, 7),
+def extract_minimap_region(map_name="", img=None, search_frac=1, blur_kernel=(7, 7),
                            canny_params=(30, 100), im_show=False):
     if img is None:
         minimap_ui_x, minimap_ui_y = find_minimap_ui(map_name)
@@ -168,6 +173,23 @@ def is_overlap(position1, position2, tolerance_x=2, tolerance_y=2, tolerance_x_l
 
 def current_at_position(position, minimap_region=None, tolerance_x=2, tolerance_y=2, tolerance_x_left=None, tolerance_x_right=None):
     return is_overlap(get_current_position_of("player", minimap_region), position, tolerance_x, tolerance_y, tolerance_x_left, tolerance_x_right)
+
+
+def check_hp(hp_region=HP_REGION):
+    im = screengrab(region=hp_region)
+    # mean_im = im[:,:,1].mean(axis=0)
+    GR_diff = (im.astype(np.int16)[:,:,2] - im.astype(np.int16)[:,:,1]).mean(axis=0)
+    # if np.sum(mean_im > 150) > 0:
+    #     hp = (hp_region[2] - np.argmax(mean_im[::-1] > 150) + HP_REGION_PADDING) / (hp_region[2] + HP_REGION_PADDING * 2)
+    #     hp_percent = int(hp.item() * 100)
+    # else:
+    #     hp_percent = 100
+    hp = (np.sum(GR_diff > 30) + HP_REGION_PADDING) / (hp_region[2] + HP_REGION_PADDING * 2)
+    hp_percent = int(hp.item()*100)
+    return hp_percent
+    # cv2.imshow("test",im[:,:,2])
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 
 def check_skill_use_popup():
@@ -318,20 +340,22 @@ if __name__ == '__main__':
     # screenshot("testinf.png", region=get_skill_region("infinity"))
     # screencapture("new_ui.png")
 
-    minimap_region = extract_minimap_region("tallahart")
+    # minimap_region = extract_minimap_region("tallahart")
     # minimap_region = extract_minimap_region("carcion")
     # minimap_region = extract_minimap_region("shangri-la")
     # minimap_region = extract_minimap_region("odium")
-    print(minimap_region)
+    # print(minimap_region)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
     # extract_symbol_on_minimap("rune", symbol_radius=3, location=(2319, 715), tolerance=30)
 
-    import time
-
+    # import time
+    #
     while 1:
-        # print(get_current_position_of("rune", minimap_region))
-        print(get_current_position_of("player", minimap_region))
-        # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
+        # # print(get_current_position_of("rune", minimap_region))
+        # print(get_current_position_of("player", minimap_region))
+        # # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
+        hp = check_hp()
+        print(int(hp/100*68962))
         time.sleep(1)
 
     # print(get_window_region())

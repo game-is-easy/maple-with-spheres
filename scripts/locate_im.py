@@ -4,15 +4,24 @@ import collections
 import subprocess
 import Quartz
 from Quartz import CGMainDisplayID, CGDisplayCreateImageForRect, CGRectMake
-from scripts.src.appscreenshot import get_screenshot_provider
+from .src.appscreenshot import get_screenshot_provider
 import os
 import datetime
+import sys
 
 Box = collections.namedtuple('Box', 'left top width height')
 RGB = collections.namedtuple('RGB', 'red green blue')
 Position = collections.namedtuple('Position', 'x y')
 # Point = collections.namedtuple('Point', 'x y')
-screenshot_provider = get_screenshot_provider()
+if sys.platform == "darwin":
+    screenshot_provider = get_screenshot_provider()
+else:
+    try:
+        vnc
+    except NameError:
+        from .src.VNCClient import VNCClient
+        vnc = VNCClient()
+    screenshot_provider = vnc
 
 
 def screenshot(image_name=None, region=None):

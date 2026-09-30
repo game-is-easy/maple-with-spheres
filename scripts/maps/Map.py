@@ -5,8 +5,9 @@ from typing import Tuple, List, Dict, Union
 
 
 class Map:
-    def __init__(self, map_name: str):
+    def __init__(self, map_name: str, cor_mode: bool = False):
         self.map_name = map_name
+        self.cor_mode = cor_mode
         self.minimap_region: Union[Box, None] = None
         self.start_position: Union[Position, None] = None  # also class-specified placement position
         self.start_post_move: Union[str, None] = None
@@ -73,6 +74,9 @@ class Map:
         self.standby_to_start_time = standby_to_start_time
 
     def initiate_map(self, tp_equiv_distance=50):
+        if self.cor_mode:
+            self.minimap_region = extract_minimap_region()
+            return
         self.set_tp_equiv_distance(tp_equiv_distance)
         maps = read_map_yaml()
         map_obj = None

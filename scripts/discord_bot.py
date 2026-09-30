@@ -8,16 +8,22 @@ from pynput import keyboard
 import threading
 import os
 import io
-from locate_im import screencapture, screengrab
-from comboKeys import short_press, hold, PRL, exec_key_sequence
-from gameUI import get_window_region
+from .locate_im import screencapture, screengrab
+from .comboKeys import short_press, hold, PRL, exec_key_sequence
+from .gameUI import get_window_region
+
+
+TOKEN_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+    "resources/token.txt"
+)
 
 # Create SSL context with proper certificates
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
 
 class DiscordBotManager:
-    def __init__(self, token_path="../resources/token.txt"):
+    def __init__(self, token_path=TOKEN_PATH):
         self.token_path = token_path
         self.bot = None
         self.tasks = None
@@ -346,12 +352,24 @@ class DiscordBotManager:
             target_user = self.target_user
         await target_user.send(message)
 
+    async def async_send_channel_message(self, message):
+        await self.channel.send(message)
+
     def send_message(self, message: str, user_id=None):
         if not self.is_ready():
             return {'trigger': 'error', 'discord_reply': None,
                     'success': False, 'error': 'Bot not ready'}
         asyncio.run_coroutine_threadsafe(
             self.async_send_message(message, user_id),
+            self.main_loop
+        )
+
+    def send_channel_message(self, message):
+        if not self.is_ready():
+            return {'trigger': 'error', 'discord_reply': None,
+                    'success': False, 'error': 'Bot not ready'}
+        asyncio.run_coroutine_threadsafe(
+            self.async_send_channel_message(message),
             self.main_loop
         )
 
