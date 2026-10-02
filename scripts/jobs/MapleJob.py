@@ -3,7 +3,7 @@ from scripts.gameUI import *
 from scripts.maps.Map import Map
 from scripts.arrow_detection.process_arrow_image import process_image
 
-WINDOW_REGION = get_window_region()
+# WINDOW_REGION = get_window_region()
 # ARROW_REGION = (600 + WINDOW_REGION[0], 400 + WINDOW_REGION[1] - 68, 1360, 400)
 ARROW_REGION = (600, 400 - 68, 1360, 400)
 
@@ -249,7 +249,6 @@ class MapleJob:
                     return self.unlock_rune(dcbot, attempts, active_app=active_app)
                 elif len(result['discord_reply'].strip().replace(' ', '')) >= 4:
                     labels = result['discord_reply'].strip().replace(' ', '')[-4:].lower()
-                    print(labels)
                     seq = []
                     for direction_char in labels:
                         arrow_key = WASD_TO_ARROW.get(direction_char)

@@ -337,7 +337,7 @@ class ExpMages(MapleJob):
             t1 = time.perf_counter()
 
             self.setup_placement()
-            # short_press(PRL['3'], 3)  # TODO: remove temporary
+            short_press(KEY_3, 3)  # TODO: remove temporary
             t_after_setup = time.perf_counter()
             log("setup down...")
             short_delay(3)

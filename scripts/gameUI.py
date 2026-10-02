@@ -16,26 +16,26 @@ HP_REGION = (1025,1497,388,3)
 HP_REGION_PADDING = 3
 
 
-def find_minimap_ui(map_name, img=None):
-    if not map_name:
+def find_minimap_ui(map_region, img=None):
+    if not map_region:
         return 16, 268
     if img is None:
         # x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), region=get_window_region(), confidence=0.8)
-        x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), confidence=0.8)
+        x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_region}.png"), confidence=0.8)
     else:
-        x, y, _, _ = locate(os.path.join(DIR, f"resources/{map_name}.png"), img, confidence=0.9)
+        x, y, _, _ = locate(os.path.join(DIR, f"resources/{map_region}.png"), img, confidence=0.9)
     print(f"map region symbol x: {x}, y: {y}")
     return x - 20, y + 66
 
 
-def extract_minimap_region(map_name="", img=None, search_frac=1, blur_kernel=(7, 7),
+def extract_minimap_region(map_region="", img=None, search_frac=1, blur_kernel=(7, 7),
                            canny_params=(30, 100), im_show=False):
     if img is None:
-        minimap_ui_x, minimap_ui_y = find_minimap_ui(map_name)
+        minimap_ui_x, minimap_ui_y = find_minimap_ui(map_region)
         # img = screencapture(region=(minimap_ui_x, minimap_ui_y, 1000, 800))
         img = screengrab(region=(minimap_ui_x, minimap_ui_y, 1000, 800))
     else:
-        minimap_ui_x, minimap_ui_y = find_minimap_ui(map_name, img)
+        minimap_ui_x, minimap_ui_y = find_minimap_ui(map_region, img)
     h, w = img.shape[:2]
 
     # 1) only search in the upper-left quarter (or whatever)
@@ -72,6 +72,7 @@ def extract_minimap_region(map_name="", img=None, search_frac=1, blur_kernel=(7,
             cv2.namedWindow('minimap detected', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('minimap detected', img)
         return Box(x + minimap_ui_x, y + minimap_ui_y, wc, hc)
+    return Box(22, 282, 500, 300)
 
 
 def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
@@ -294,27 +295,34 @@ def get_window_region():
 
 
 def get_active_application():
-    script = '''tell application "System Events"
+    if sys.platform == "darwin":
+        script = '''tell application "System Events"
     set frontmostProcessName to name of the first process whose frontmost is true
     set processBid to get the bundle identifier of process frontmostProcessName
     set applicationName to file of (application processes where bundle identifier is processBid)
 end tell
 return applicationName as string'''
 
-    try:
-        result_bytes = subprocess.check_output(["osascript", "-e", script])
-        result_string = result_bytes.decode('utf-8').strip()
-        app_name = result_string[result_string.find("Applications:") + len("Applications:"):result_string.find(".app")]
-        if "Launcher" in app_name:
-            app_name = app_name.replace("Launcher", '').strip()
-        return app_name
-    except subprocess.CalledProcessError as e:
-        log(f"Error executing AppleScript: {e}")
-        return None
+        try:
+            result_bytes = subprocess.check_output(["osascript", "-e", script])
+            result_string = result_bytes.decode('utf-8').strip()
+            app_name = result_string[result_string.find("Applications:") + len("Applications:"):result_string.find(".app")]
+            if "Launcher" in app_name:
+                app_name = app_name.replace("Launcher", '').strip()
+            return app_name
+        except subprocess.CalledProcessError as e:
+            log(f"Error executing AppleScript: {e}")
+            return None
+
+    else:  # TODO: windows os
+        pass
 
 
 def activate_window(window_name="Parallels Desktop"):
-    subprocess.run(["osascript", "-e", f'tell application "{window_name}" to activate'])
+    if sys.platform == "darwin":
+        subprocess.run(["osascript", "-e", f'tell application "{window_name}" to activate'])
+    else:  # TODO: windows os
+        pass
 
 
 def preview_image(im, delay):

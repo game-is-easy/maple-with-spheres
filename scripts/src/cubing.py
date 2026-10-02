@@ -88,16 +88,16 @@ if __name__ == '__main__':
     rating_rule_dex = {"DEX": 1, "Attack Power": 3.5, "STR": 0.1, "All Stats": 1.1}
     rating_rule_att = {"Attack Power": 1}
     rating_rules = [
-        rating_rule_str,
-        rating_rule_dex,
-        rating_rule_luk,
+        # rating_rule_str,
+        # rating_rule_dex,
+        # rating_rule_luk,
         rating_rule_int,
         # rating_rule_att,
     ]
     # target_scores = [100,70,100,100]
-    target_scores = 60
+    target_scores = 70
     #
     # calc_total_score(potential_lines, rating_rules)
-    n_rolls = roll(rating_rules, target_scores, 500, n_rolled=449, dmt_not_apply=False)
+    n_rolls = roll(rating_rules, target_scores, 500, n_rolled=0, dmt_not_apply=False)
     print(f"rolled {n_rolls} times.")
 

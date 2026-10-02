@@ -15,8 +15,6 @@ class VNCClient:
 
     def start_client(self):
         self.client = api.connect(server_url, password=password)
-        if self.client.protocol is None or not self.client.connected:
-            raise ConnectionError("VNC Server is not connected.")
 
     def keyDown(self, key):
         self.client.keyDown(key)
@@ -33,6 +31,11 @@ class VNCClient:
             self.client.captureScreen(tmp_filename)
         else:
             x, y, w, h = region
+            x //= 2
+            y -= 76
+            y //= 2
+            w //= 2
+            h //= 2
             self.client.captureRegion(tmp_filename, x, y, w, h)
         im = cv2.imread(tmp_filename)
         if image_name is None:
