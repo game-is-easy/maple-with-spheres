@@ -1,8 +1,14 @@
 from pynput import keyboard
 import numpy as np
+import sys
 
 
-mode = "prl"
+if sys.platform == "darwin":
+    mode = "prl"
+    game_window_title = "Parallels Desktop"
+else:
+    mode = "vmware"
+    game_window_title = "VMware Workstation"
 
 if mode == "prl":
     from .src.keyInject import *

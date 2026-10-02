@@ -119,9 +119,11 @@ def locate_all(needle_image, haystack_image, limit=10000, confidence=0.999, show
     # use a generator for API consistency:
     matchx = matches[1]  # vectorized
     matchy = matches[0]
-    if sys.platform == "win32":  # Test
+    if sys.platform != "darwin":  # Test
         matchx = matchx * 2
         matchy = matchy * 2
+        needle_width = needle_width * 2
+        needle_height = needle_height * 2
     # return matchx, matchy, needle_width, needle_height
     for x, y in zip(matchx, matchy):
         yield Box(x, y, needle_width, needle_height)

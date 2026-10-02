@@ -1,6 +1,7 @@
 import datetime
 import os
 import cv2
+import numpy as np
 from vncdotool import api
 
 
@@ -29,6 +30,8 @@ class VNCClient:
             tmp_filename = image_name
         if region is None:
             self.client.captureScreen(tmp_filename)
+            im = cv2.imread(tmp_filename)
+            im = np.vstack([np.zeros_like(im)[:38], im])
         else:
             x, y, w, h = region
             x //= 2
@@ -37,7 +40,7 @@ class VNCClient:
             w //= 2
             h //= 2
             self.client.captureRegion(tmp_filename, x, y, w, h)
-        im = cv2.imread(tmp_filename)
+            im = cv2.imread(tmp_filename)
         if image_name is None:
             os.unlink(tmp_filename)
         return im

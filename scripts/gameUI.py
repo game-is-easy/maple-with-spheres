@@ -9,7 +9,11 @@ import os.path
 import sys
 
 DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-RESOURCES_DIR = os.path.join(DIR, "resources")
+if sys.platform == "darwin":
+    RESOURCES_DIR = os.path.join(DIR, "resources")
+else:
+    RESOURCES_DIR = os.path.join(DIR, "resources", "windows")
+
 
 MINIMAP_POSITION_DEFAULT = (30, 342)
 HP_REGION = (1025,1497,388,3)
@@ -21,9 +25,9 @@ def find_minimap_ui(map_region, img=None):
         return 16, 268
     if img is None:
         # x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_name}.png"), region=get_window_region(), confidence=0.8)
-        x, y, _, _ = locate_on_screen(os.path.join(DIR, f"resources/{map_region}.png"), confidence=0.8)
+        x, y, _, _ = locate_on_screen(os.path.join(RESOURCES_DIR, f"{map_region}.png"), confidence=0.8)
     else:
-        x, y, _, _ = locate(os.path.join(DIR, f"resources/{map_region}.png"), img, confidence=0.9)
+        x, y, _, _ = locate(os.path.join(RESOURCES_DIR, f"{map_region}.png"), img, confidence=0.9)
     print(f"map region symbol x: {x}, y: {y}")
     return x - 20, y + 66
 
@@ -33,7 +37,7 @@ def extract_minimap_region(map_region="", img=None, search_frac=1, blur_kernel=(
     if img is None:
         minimap_ui_x, minimap_ui_y = find_minimap_ui(map_region)
         # img = screencapture(region=(minimap_ui_x, minimap_ui_y, 1000, 800))
-        img = screengrab(region=(minimap_ui_x, minimap_ui_y, 1000, 800))
+        img = screengrab(region=(minimap_ui_x, minimap_ui_y, 500, 400))
     else:
         minimap_ui_x, minimap_ui_y = find_minimap_ui(map_region, img)
     h, w = img.shape[:2]
@@ -48,6 +52,7 @@ def extract_minimap_region(map_region="", img=None, search_frac=1, blur_kernel=(
     cnts, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL,
                                cv2.CHAIN_APPROX_SIMPLE)
 
+    min_area = 20000 if sys.platform == "darwin" else 5000
     best = None
     best_area = 0
 
@@ -59,20 +64,27 @@ def extract_minimap_region(map_region="", img=None, search_frac=1, blur_kernel=(
             area = wc * hc
             ar = wc / float(hc)
             # 3) filter by a “minimap‑ish” aspect ratio (e.g. ~3:1)
-            if 1.0 < ar < 6.0 and area > 20000:
+            if 1.0 < ar < 6.0 and area > min_area:
                 if area > best_area:
                     best_area = area
                     best = (x, y, wc, hc)
+                    break
 
     if best:
         x, y, wc, hc = best
         print(f"minimap region left: {x}, top {y}, width: {wc}, height: {hc}")
         if im_show:
-            cv2.rectangle(img, (x, y), (x + wc, y + hc), (0, 0, 255), 3)
-            cv2.namedWindow('minimap detected', cv2.WINDOW_AUTOSIZE)
+            cv2.rectangle(img, (x, y), (x + wc, y + hc), (0, 0, 255), 2)
             cv2.imshow('minimap detected', img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        if sys.platform != "darwin":
+            x *= 2
+            y *= 2
+            wc = wc * 2
+            hc = hc * 2
         return Box(x + minimap_ui_x, y + minimap_ui_y, wc, hc)
-    return Box(22, 282, 500, 300)
+    return Box(30, 274, 500, 300)
 
 
 def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
@@ -86,6 +98,11 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
     minimap_region = extract_minimap_region()
     if minimap_region:
         x, y, w, h = minimap_region
+        if sys.platform != "darwin":
+            x //= 2
+            y //= 2
+            w //= 2
+            h //= 2
         im = im[y:y + h, x:x + w]
     else:
         log("minimap detection fails")
@@ -98,7 +115,7 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
             return
         xc, yc = location
         xc -= x
-        yc -= y
+        yc -= (y - 38)
         pixels = im[yc - symbol_radius:yc + symbol_radius,
                  xc - symbol_radius:xc + symbol_radius]
         pixels = pixels.reshape(-1, 3)
@@ -119,12 +136,12 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
     coords = np.column_stack(np.where(mask))
     if coords.size > 0:
         # yc, xc = coords.mean(axis=0)
+        if sys.platform == "darwin":
+            symbol_radius *= 2
         yc, xc = np.median(coords, axis=0)
-        # x0 = int(round(xc - symbol_radius * 2))
-        x0 = int(xc - symbol_radius * 2 + 0)
-        # y0 = int(round(yc - symbol_radius * 2))
-        y0 = int(yc - symbol_radius * 2 + 0)
-        s = symbol_radius * 4
+        x0 = int(xc - symbol_radius + 1)
+        y0 = int(yc - symbol_radius + 1)
+        s = symbol_radius * 2
         im = im[y0:y0 + s, x0:x0 + s]
         filtered_im = filter_color(im, color, tolerance)
         cv2.imwrite(os.path.join(RESOURCES_DIR, f'{symbol_name}.png'),
@@ -201,10 +218,16 @@ def check_skill_use_popup():
 def check_buff_use_popup():
     dialog_check_use_buffs_im_path = os.path.join(RESOURCES_DIR, "use_all_buffs.png")
     dialog_check_confirm_im_path = os.path.join(RESOURCES_DIR, "confirm_buff_seq.png")
-    confirm_region = locate_on_screen(dialog_check_confirm_im_path, region=(1000, 900, 400, 300), confidence=0.8)
+    try:
+        confirm_region = locate_on_screen(dialog_check_confirm_im_path, region=(1000, 900, 400, 300), confidence=0.8)
+    except AttributeError:
+        return 0
     if confirm_region:
         return confirm_region
-    use_buffs_region = locate_on_screen(dialog_check_use_buffs_im_path, region=(900, 900, 400, 300), confidence=0.8)
+    try:
+        use_buffs_region = locate_on_screen(dialog_check_use_buffs_im_path, region=(900, 900, 400, 300), confidence=0.8)
+    except AttributeError:
+        return 0
     if use_buffs_region:
         return use_buffs_region
     return None
@@ -315,14 +338,44 @@ return applicationName as string'''
             return None
 
     else:  # TODO: windows os
-        pass
+        return
 
 
 def activate_window(window_name="Parallels Desktop"):
     if sys.platform == "darwin":
         subprocess.run(["osascript", "-e", f'tell application "{window_name}" to activate'])
-    else:  # TODO: windows os
+    elif sys.platform.startswith("linux"):
         pass
+    else:
+        try:
+            import pygetwindow
+        except ImportError:
+            return
+        try:
+            window = pygetwindow.getWindowsWithTitle(window_name)[0]
+            if window:
+                window.activate()
+        except:
+            return
+
+
+def hide_window(window_name):
+    if sys.platform == "darwin":
+        subprocess.run(["osascript", "-e", f'tell application "System Events" to set visible of process "{window_name}" to False'])
+    elif sys.platform.startswith("linux"):
+        pass
+    else:
+        try:
+            import pygetwindow
+        except ImportError:
+            return
+        try:
+            window = pygetwindow.getWindowsWithTitle(window_name)[0]
+            if window:
+                window.hide()
+        except:
+            return
+
 
 
 def preview_image(im, delay):
@@ -351,20 +404,20 @@ if __name__ == '__main__':
     # minimap_region = extract_minimap_region("tallahart")
     # minimap_region = extract_minimap_region("carcion")
     # minimap_region = extract_minimap_region("shangri-la")
-    # minimap_region = extract_minimap_region("odium")
-    # print(minimap_region)
+    minimap_region = extract_minimap_region(im_show=True)
+    print(minimap_region)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
     # extract_symbol_on_minimap("rune", symbol_radius=3, location=(2319, 715), tolerance=30)
 
     # import time
     #
-    while 1:
+    # while 1:
         # # print(get_current_position_of("rune", minimap_region))
         # print(get_current_position_of("player", minimap_region))
         # # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
-        hp = check_hp()
-        print(int(hp/100*68962))
-        time.sleep(1)
+        # hp = check_hp()
+        # print(int(hp/100*68962))
+        # time.sleep(1)
 
     # print(get_window_region())
     # x1 = x0 + w

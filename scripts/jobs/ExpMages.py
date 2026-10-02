@@ -3,6 +3,7 @@ import time
 from .MapleJob import MapleJob
 from ..comboKeys import *
 from ..gameUI import *
+from ..src.alerting import alert
 
 
 class ExpMages(MapleJob):
@@ -351,7 +352,8 @@ class ExpMages(MapleJob):
             time_left = max_duration - time.perf_counter() + t0
             log(f"{time_left:.2f} seconds left.")
             if time_left < 60:
-                subprocess.run(['say', 'less than one minutes left!'])
+                # subprocess.run(['say', 'less than one minutes left!'])
+                alert("time_out_soon")
 
             if self.check_stop_event_and_simultaneous_events(stop_event):
                 break
