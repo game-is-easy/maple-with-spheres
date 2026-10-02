@@ -12,7 +12,7 @@ DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if sys.platform == "darwin":
     RESOURCES_DIR = os.path.join(DIR, "resources")
 else:
-    RESOURCES_DIR = os.path.join(DIR, "resources", "windows")
+    RESOURCES_DIR = os.path.join(DIR, "resources_win")
 
 
 MINIMAP_POSITION_DEFAULT = (30, 342)

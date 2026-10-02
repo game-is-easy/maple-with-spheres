@@ -2,7 +2,7 @@
 
 - name: "Fate-Fields of Eternity 3"
   region: "Tallahart"
-  minimap_box: [0, 0, 100, 100]
+  minimap_box: [14, 6, 382, 156]
   top_level: 50
   start_position: [140, 100]
   erda_position: [180, 100]
