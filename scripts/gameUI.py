@@ -79,8 +79,8 @@ def extract_minimap_region(map_region="", img=None, search_frac=1, blur_kernel=(
             cv2.waitKey(0)
             cv2.destroyAllWindows()
         if sys.platform != "darwin":
-            x *= 2
-            y *= 2
+            x = x * 2 + 2
+            y = y * 2 + 2
             wc = wc * 2
             hc = hc * 2
         return Box(x + minimap_ui_x, y + minimap_ui_y, wc, hc)
@@ -403,21 +403,21 @@ if __name__ == '__main__':
 
     # minimap_region = extract_minimap_region("tallahart")
     # minimap_region = extract_minimap_region("carcion")
-    # minimap_region = extract_minimap_region("shangri-la")
-    minimap_region = extract_minimap_region(im_show=True)
+    minimap_region = extract_minimap_region("shangri-la")
+    # minimap_region = extract_minimap_region()
     print(minimap_region)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
     # extract_symbol_on_minimap("rune", symbol_radius=3, location=(2319, 715), tolerance=30)
 
     # import time
     #
-    # while 1:
+    while 1:
         # # print(get_current_position_of("rune", minimap_region))
-        # print(get_current_position_of("player", minimap_region))
+        print(get_current_position_of("player", minimap_region))
         # # print(is_overlap_y(get_current_position_of("player", minimap_region), Position(106, 178)))
         # hp = check_hp()
         # print(int(hp/100*68962))
-        # time.sleep(1)
+        time.sleep(1)
 
     # print(get_window_region())
     # x1 = x0 + w
