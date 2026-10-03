@@ -44,3 +44,9 @@ class VNCClient:
         if image_name is None:
             os.unlink(tmp_filename)
         return im
+
+
+if __name__ == '__main__':
+    vnc = VNCClient()
+    vnc.start_client()
+    vnc.grab("save.png", region=(36, 202, 30, 30))
