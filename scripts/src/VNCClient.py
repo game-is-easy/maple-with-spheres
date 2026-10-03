@@ -1,6 +1,7 @@
 import datetime
 import os
 import cv2
+import numpy as np
 from vncdotool import api
 
 
@@ -15,8 +16,6 @@ class VNCClient:
 
     def start_client(self):
         self.client = api.connect(server_url, password=password)
-        if self.client.protocol is None or not self.client.connected:
-            raise ConnectionError("VNC Server is not connected.")
 
     def keyDown(self, key):
         self.client.keyDown(key)
@@ -31,10 +30,23 @@ class VNCClient:
             tmp_filename = image_name
         if region is None:
             self.client.captureScreen(tmp_filename)
+            im = cv2.imread(tmp_filename)
+            im = np.vstack([np.zeros_like(im)[:38], im])
         else:
             x, y, w, h = region
+            x //= 2
+            y -= 76
+            y //= 2
+            w //= 2
+            h //= 2
             self.client.captureRegion(tmp_filename, x, y, w, h)
-        im = cv2.imread(tmp_filename)
+            im = cv2.imread(tmp_filename)
         if image_name is None:
             os.unlink(tmp_filename)
         return im
+
+
+if __name__ == '__main__':
+    vnc = VNCClient()
+    vnc.start_client()
+    vnc.grab("save.png", region=(36, 202, 30, 30))

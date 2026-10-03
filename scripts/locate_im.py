@@ -1,19 +1,15 @@
 import numpy as np
 import cv2
 import collections
-import subprocess
-import Quartz
-from Quartz import CGMainDisplayID, CGDisplayCreateImageForRect, CGRectMake
-from .src.appscreenshot import get_screenshot_provider
 import os
 import datetime
 import sys
 
-Box = collections.namedtuple('Box', 'left top width height')
-RGB = collections.namedtuple('RGB', 'red green blue')
-Position = collections.namedtuple('Position', 'x y')
-# Point = collections.namedtuple('Point', 'x y')
 if sys.platform == "darwin":
+    import subprocess
+    import Quartz
+    from Quartz import CGMainDisplayID, CGDisplayCreateImageForRect, CGRectMake
+    from .src.appscreenshot import get_screenshot_provider
     screenshot_provider = get_screenshot_provider()
 else:
     try:
@@ -23,6 +19,10 @@ else:
         vnc = VNCClient()
     screenshot_provider = vnc
 
+Box = collections.namedtuple('Box', 'left top width height')
+RGB = collections.namedtuple('RGB', 'red green blue')
+Position = collections.namedtuple('Position', 'x y')
+# Point = collections.namedtuple('Point', 'x y')
 
 def screenshot(image_name=None, region=None):
     if image_name is None:
@@ -80,7 +80,7 @@ def screencapture(image_name=None, region=None, retina_region=True, png_compress
 
 
 def screengrab(image_name=None, region=None, png_compression=1):
-    bgr = screenshot_provider.grab(region)
+    bgr = screenshot_provider.grab(region=region)
     if image_name is not None:
         cv2.imwrite(image_name, bgr, [cv2.IMWRITE_PNG_COMPRESSION, png_compression])
     return bgr
@@ -119,6 +119,11 @@ def locate_all(needle_image, haystack_image, limit=10000, confidence=0.999, show
     # use a generator for API consistency:
     matchx = matches[1]  # vectorized
     matchy = matches[0]
+    if sys.platform != "darwin":  # Test
+        matchx = matchx * 2
+        matchy = matchy * 2
+        needle_width = needle_width * 2
+        needle_height = needle_height * 2
     # return matchx, matchy, needle_width, needle_height
     for x, y in zip(matchx, matchy):
         yield Box(x, y, needle_width, needle_height)

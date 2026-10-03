@@ -1,4 +1,3 @@
-from scripts.discord_bot import DiscordBotManager
 from scripts.jobs.ExpMages import IL, Bishop
 
 
@@ -17,6 +16,8 @@ class App:
         self.cor_mode = cor_mode
 
         if use_dc:
+            from scripts.discord_bot import DiscordBotManager
+
             self.dcbot = DiscordBotManager()
             self.dcbot.start_bot()
 

@@ -1,9 +1,10 @@
 from scripts.comboKeys import *
 from scripts.gameUI import *
 from scripts.maps.Map import Map
+from scripts.src.alerting import alert
 from scripts.arrow_detection.process_arrow_image import process_image
 
-WINDOW_REGION = get_window_region()
+# WINDOW_REGION = get_window_region()
 # ARROW_REGION = (600 + WINDOW_REGION[0], 400 + WINDOW_REGION[1] - 68, 1360, 400)
 ARROW_REGION = (600, 400 - 68, 1360, 400)
 
@@ -82,6 +83,8 @@ class MapleJob:
         while region is not None:
             short_press(KEY_ENTER, 5)
             region = check_skill_use_popup()
+            if region == 0:
+                break
         seq = short_press(KEY_LEFT_ARROW, 3, False)
         seq.extend(short_press(KEY_RIGHT_ARROW, 1, False))
         exec_key_sequence(seq)
@@ -196,7 +199,8 @@ class MapleJob:
                 dcbot.send_message(f"[{datetime.now().strftime('%H:%M:%S')}] Rune spwaned. Be ready.")
             if first_attempt:
                 if not self.silence_mode:
-                    subprocess.run(['say', 'Rune spawned.'])
+                    # subprocess.run(['say', 'Rune spawned.'])
+                    alert("rune_spawned")
                 self.attack1()
                 rune_platform_edges = self.map.get_edges_at(self.map.rune_position)
                 tolerance_left = int(np.min([self.map.rune_position.x - rune_platform_edges[0], 4])) if rune_platform_edges else 4
@@ -213,7 +217,7 @@ class MapleJob:
                 if active_app is None:
                     active_app = get_active_application()
                 time.sleep(0.1)
-                activate_window()
+                activate_window(game_window_title)
                 time.sleep(0.1)
                 activate_window("Discord")
             elif self.auto_active_dc_window:
@@ -223,8 +227,9 @@ class MapleJob:
             t0 = time.perf_counter()
             keyPress(KEY_INTERACT, press_duration)
             if dcbot is None:
-                time.sleep(10)
+                time.sleep(12)
                 return True
+
             time.sleep(float(np.max([0.2 - time.perf_counter() + t0, 0])))
             images = []
             while time.perf_counter() - t0 < 0.8:
@@ -249,7 +254,6 @@ class MapleJob:
                     return self.unlock_rune(dcbot, attempts, active_app=active_app)
                 elif len(result['discord_reply'].strip().replace(' ', '')) >= 4:
                     labels = result['discord_reply'].strip().replace(' ', '')[-4:].lower()
-                    print(labels)
                     seq = []
                     for direction_char in labels:
                         arrow_key = WASD_TO_ARROW.get(direction_char)
@@ -263,10 +267,12 @@ class MapleJob:
                     # TODO: check if rune unlock is successful
                     self.rune_unlock_timestamp = time.perf_counter()
                 if active_app is not None and not self.silence_mode:
-                    subprocess.run(["osascript", "-e", 'tell application "System Events" to set visible of process "Discord" to False'])
+                    # subprocess.run(["osascript", "-e", 'tell application "System Events" to set visible of process "Discord" to False'])
+                    hide_window("Discord")
                     activate_window(active_app)
                 elif self.auto_active_dc_window:
-                    subprocess.run(["osascript", "-e", 'tell application "System Events" to set visible of process "Discord" to False'])
+                    # subprocess.run(["osascript", "-e", 'tell application "System Events" to set visible of process "Discord" to False'])
+                    hide_window("Discord")
                 if os.path.exists(os.path.join(DIR, f"training/labels.json")):
                     with open(os.path.join(DIR, f"training/labels.json"), 'r') as f:
                         data = json.load(f)
@@ -278,7 +284,8 @@ class MapleJob:
                 self.map.rune_position = None
                 return True
             # random_action(attack1, attack2, attack3)()
-            subprocess.run(['say', 'Rune is still there!'])
+            # subprocess.run(['say', 'Rune is still there!'])
+            alert("rune_solve_failed")
 
     def check_stop_event_and_simultaneous_events(self, stop_event):
         if stop_event is not None and stop_event.is_set():

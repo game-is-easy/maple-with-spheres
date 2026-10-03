@@ -3,6 +3,7 @@ import time
 from .MapleJob import MapleJob
 from ..comboKeys import *
 from ..gameUI import *
+from ..src.alerting import alert
 
 
 class ExpMages(MapleJob):
@@ -337,7 +338,7 @@ class ExpMages(MapleJob):
             t1 = time.perf_counter()
 
             self.setup_placement()
-            # short_press(PRL['3'], 3)  # TODO: remove temporary
+            short_press(KEY_3, 3)  # TODO: remove temporary
             t_after_setup = time.perf_counter()
             log("setup down...")
             short_delay(3)
@@ -351,7 +352,8 @@ class ExpMages(MapleJob):
             time_left = max_duration - time.perf_counter() + t0
             log(f"{time_left:.2f} seconds left.")
             if time_left < 60:
-                subprocess.run(['say', 'less than one minutes left!'])
+                # subprocess.run(['say', 'less than one minutes left!'])
+                alert("time_out_soon")
 
             if self.check_stop_event_and_simultaneous_events(stop_event):
                 break

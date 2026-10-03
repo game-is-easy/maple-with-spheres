@@ -8,9 +8,8 @@ from pynput import keyboard
 import threading
 import os
 import io
-from .locate_im import screencapture, screengrab
+from .locate_im import screengrab
 from .comboKeys import short_press, hold, PRL, exec_key_sequence
-from .gameUI import get_window_region
 
 
 TOKEN_PATH = os.path.join(
@@ -79,8 +78,7 @@ class DiscordBotManager:
             if (self.waiting_for_reply and
                     message.author.id == self.target_user_id and
                     isinstance(message.channel, discord.DMChannel)):
-                print(
-                    f"Received DM reply: '{message.content}' from {message.author}")
+                print(f"Received DM reply: '{message.content}' from {message.author}")
                 self.reply_received = message.content
                 self.waiting_for_reply = False
 
