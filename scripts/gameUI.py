@@ -20,6 +20,15 @@ HP_REGION = (1025,1497,388,3)
 HP_REGION_PADDING = 3
 
 
+def extract_minimap_region_from_window_title(img=None):
+    if img is None:
+        x, y, _, _ = locate_on_screen(os.path.join(RESOURCES_DIR, "mushroom.png"), confidence=0.9)
+    else:
+        x, y, _, _ = locate(os.path.join(RESOURCES_DIR, "mushroom.png"), img, confidence=0.9)
+
+    return Box(x + 2, y + 188, 500, 350)
+
+
 def find_minimap_ui(map_region, img=None):
     if not map_region:
         return 16, 268
@@ -83,7 +92,8 @@ def extract_minimap_region(map_region="", img=None, search_frac=1, blur_kernel=(
             y = y * 2 + 2
             wc = wc * 2
             hc = hc * 2
-        return Box(x + minimap_ui_x, y + minimap_ui_y, wc, hc)
+        # return Box(x + minimap_ui_x, y + minimap_ui_y, wc, hc)
+        return Box(30, 274, wc, hc)
     return Box(30, 274, 500, 300)
 
 
@@ -95,7 +105,10 @@ def extract_symbol_on_minimap(symbol_name, symbol_radius=5, color=None,
     #     im = cv2.imread(im_name)
     # im = screencapture()
     im = screengrab()
-    minimap_region = extract_minimap_region()
+    if sys.platform == "darwin":
+        minimap_region = extract_minimap_region()
+    else:
+        minimap_region = extract_minimap_region_from_window_title()
     if minimap_region:
         x, y, w, h = minimap_region
         if sys.platform != "darwin":
@@ -152,7 +165,10 @@ def get_current_position_of(symbol, minimap_region=None, map_name=None, confiden
     if attempts <= 0:
         return None
     if minimap_region is None:
-        minimap_region = extract_minimap_region(map_name)
+        if map_name:
+            minimap_region = extract_minimap_region(map_name)
+        else:
+            minimap_region = extract_minimap_region_from_window_title()
     with open(os.path.join(RESOURCES_DIR, "symbol_colors.json"), 'r') as f:
         symbol_colors = json.load(f)
     color = symbol_colors.get(symbol)
@@ -403,9 +419,12 @@ if __name__ == '__main__':
 
     # minimap_region = extract_minimap_region("tallahart")
     # minimap_region = extract_minimap_region("carcion")
-    minimap_region = extract_minimap_region("shangri-la")
+    # minimap_region = extract_minimap_region("shangri-la")
+    minimap_region = extract_minimap_region("Cernium")
     # minimap_region = extract_minimap_region()
-    print(minimap_region)
+    print("region extracted using regional minimap symbol:\n", minimap_region)
+    minimap_region_2 = extract_minimap_region_from_window_title()
+    print("region extracted using window title mushroom symbol:\n", minimap_region_2)
     # extract_symbol_on_minimap("player", symbol_radius=3, location=(3192, 1904))
     # extract_symbol_on_minimap("rune", symbol_radius=3, location=(2319, 715), tolerance=30)
 

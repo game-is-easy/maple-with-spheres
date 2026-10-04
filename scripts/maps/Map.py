@@ -75,7 +75,10 @@ class Map:
 
     def initiate_map(self, tp_equiv_distance=50):
         if self.cor_mode:
-            self.minimap_region = extract_minimap_region()
+            if sys.platform == "darwin":
+                self.minimap_region = extract_minimap_region()
+            else:
+                self.minimap_region = extract_minimap_region_from_window_title()
             return
         self.set_tp_equiv_distance(tp_equiv_distance)
         maps = read_map_yaml()
@@ -138,7 +141,10 @@ class Map:
                     self.platforms[platform['y']].append({"edges": platform['x'], "rope_down": platform.get('rope') or [], "rope_up": platform.get("rope_up") or []})
                 else:
                     self.platforms.update({platform['y']: [{"edges": platform['x'], "rope_down": platform.get('rope') or [], "rope_up": platform.get("rope_up") or []}]})
-        self.minimap_region = extract_minimap_region(map_obj["region"].lower())
+        if sys.platform == "darwin":
+            self.minimap_region = extract_minimap_region(map_obj["region"].lower())
+        else:
+            self.minimap_region = extract_minimap_region_from_window_title()
 
     def get_platform(self, position: Position):
         for platform in self.platforms.get(position.y) or []:
