@@ -32,8 +32,8 @@ events = {
             {"frequency": 400, "duration": 0.2},
             {"frequency": 300, "duration": 0.2}
         ],
-        "darwin": "Rune is still there!",
-        "linux": "Rune is still there!",
+        "darwin": "Less than one minute left!",
+        "linux": "Less than one minute left!",
     },
 }
 

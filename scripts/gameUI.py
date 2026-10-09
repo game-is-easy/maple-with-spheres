@@ -13,6 +13,12 @@ if sys.platform == "darwin":
     RESOURCES_DIR = os.path.join(DIR, "resources")
 else:
     RESOURCES_DIR = os.path.join(DIR, "resources_win")
+    if sys.platform == "win32":
+        try:
+            import pygetwindow
+        except ImportError:
+            subprocess.run(["pip", "install", "pygetwindow"])
+            import pygetwindow
 
 
 MINIMAP_POSITION_DEFAULT = (30, 342)
@@ -363,10 +369,6 @@ def activate_window(window_name="Parallels Desktop"):
     elif sys.platform.startswith("linux"):
         pass
     else:
-        try:
-            import pygetwindow
-        except ImportError:
-            return
         try:
             window = pygetwindow.getWindowsWithTitle(window_name)[0]
             if window:

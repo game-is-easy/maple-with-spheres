@@ -6,9 +6,25 @@ import sys
 if sys.platform == "darwin":
     mode = "prl"
     game_window_title = "Parallels Desktop"
+elif sys.platform == "win32":
+    try:
+        import pygetwindow
+    except ImportError:
+        import subprocess
+        subprocess.run(["pip", "install", "pygetwindow"])
+    mode = ""
+    for title in pygetwindow.getAllTitles():
+        if title.contains("VMware Workstation"):
+            mode = "vmware"
+            game_window_title = title
+            break
+        if title.contains("网易UU远程"):
+            mode = "remote"
+            game_window_title = title
+    if not mode:
+        raise RuntimeError("Game is not ready.")
 else:
     mode = "vmware"
-    game_window_title = "VMware Workstation"
 
 if mode == "prl":
     from .src.keyInject import *
@@ -18,6 +34,12 @@ if mode == "prl":
 
 elif mode == "vmware":
     from .src.vmwKeyInject import *
+
+    def exec_key_sequence(seq):
+        keySequence(seq)
+
+elif mode == "remote":
+    from .src.remoteKeyInject import *
 
     def exec_key_sequence(seq):
         keySequence(seq)
